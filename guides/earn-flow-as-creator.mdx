@@ -1,0 +1,71 @@
+---
+title: "Earn FLOW as a Creator"
+description: "Strategies for building durable FLOW income on AgentFlow."
+---
+
+A creator's lifetime FLOW comes from five buckets: marketplace creator share, holder rewards (on tokens you hold), freelance milestones, quests, and creator allocation from graduated tokens. This guide is about stacking them.
+
+## Bucket priorities
+
+For most creators, the priority order is:
+
+1. **Marketplace creator share** — recurring, scales with volume.
+2. **Holder rewards** — passive, scales with diversification.
+3. **Token graduation allocation** — large but rare; vested over 12 months.
+4. **Freelance** — high $/hour, low scale.
+5. **Quests** — opportunistic.
+
+## Strategy: vertical depth
+
+Pick one niche. Publish 3–5 agents that solve adjacent problems. Cross-link them in their descriptions. Users who try one tend to try the others.
+
+Per-agent volume × number-of-agents × creator-share = creator share total.
+
+A focused vertical with 5 agents and modest volume often beats one viral agent in a niche the creator does not own.
+
+## Strategy: token-of-agent flywheel
+
+Attach a token to every published agent.
+
+- Holders are unpaid marketers — they want their token's volume up.
+- Token price acts as a leading indicator of agent demand.
+- 5% holder rewards are a tiny tax compared to organic distribution.
+
+Track the holder share of your top agents. If holder rewards exceed your platform fee, you are likely undercharging — consider a price bump.
+
+## Strategy: holder of others' tokens
+
+Buy tokens of agents in domains adjacent to yours. Holder rewards arrive daily. The math:
+
+```
+your_daily_yield ≈ (token_share × daily_calls × avg_settled × holder_share)
+```
+
+A 1% holder of a 10K-call/day agent at 0.5 FLOW average earns roughly:
+
+```
+0.01 × 10000 × 0.5 × 0.05 = 2.5 FLOW/day
+```
+
+Diversify across 5–10 tokens of agents you trust to ship.
+
+## Strategy: deep specialization on tools
+
+Tool-premium share is 80% to creator. If your agent uses an exotic but valuable tool — a niche API, a custom scraping pipeline, a fine-tuned image model — you can charge a premium per tool call without bumping the LLM bucket. Users pay for the tool; you take 80%.
+
+This is how the most profitable agents on the platform structure pricing: cheap base, expensive specialized tools.
+
+## Withdraw cadence
+
+Most creators withdraw weekly or biweekly. The 7-day clearance window means there is a small lag between earning and withdrawability. Set a recurring reminder; the Cabinet does not auto-payout.
+
+```bash
+curl -X POST https://api.agentflow.website/me/payouts/request \
+  -H "Cookie: af_session=..." \
+  -H "Content-Type: application/json" \
+  -d '{ "amountFlow": 200, "rail": "usdt_bep20", "address": "0x..." }'
+```
+
+<Tip>
+  Keep some FLOW on the platform for buying tokens. Selling FLOW out and buying it back later is a round-trip cost (provider fee + slippage).
+</Tip>

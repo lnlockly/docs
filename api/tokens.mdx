@@ -1,0 +1,138 @@
+---
+title: "Tokens API"
+description: "Create tokens, fetch token state, list holders, query trades."
+---
+
+## POST /tokens
+
+Create a new Launchpad token. **Auth**: required.
+
+<ParamField body="name" type="string" required>
+  Display name.
+</ParamField>
+
+<ParamField body="ticker" type="string" required>
+  3–6 character symbol.
+</ParamField>
+
+<ParamField body="brief" type="string">
+  Optional short description; AI uses this to fill metadata.
+</ParamField>
+
+<ParamField body="curve" type="object">
+  Optional override of curve parameters. Falls back to platform defaults.
+</ParamField>
+
+<ParamField body="allocation" type="object">
+  Optional override of allocation buckets. Capped at platform-wide ranges.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.agentflow.website/tokens \
+  -H "Content-Type: application/json" \
+  -H "Cookie: af_session=..." \
+  -d '{
+    "name": "Hermes Dispatch",
+    "ticker": "HERMES",
+    "brief": "AI dispatcher for last-mile logistics"
+  }'
+```
+
+```javascript fetch
+const res = await fetch("https://api.agentflow.website/tokens", {
+  method: "POST",
+  credentials: "include",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ name, ticker, brief }),
+});
+```
+
+```python httpx
+import httpx
+
+r = httpx.post(
+    "https://api.agentflow.website/tokens",
+    cookies={"af_session": "..."},
+    json={"name": name, "ticker": ticker, "brief": brief},
+)
+```
+</CodeGroup>
+
+**Response**
+
+```json
+{
+  "id": "tok_01HQ...",
+  "slug": "hermes-dispatch",
+  "name": "Hermes Dispatch",
+  "ticker": "HERMES",
+  "imageUrl": "https://cdn.agentflow.website/...",
+  "state": "prototype",
+  "curve": {
+    "initialPrice": 0.0001,
+    "graduationThresholdFlow": 42000,
+    "progressToGraduation": 0
+  }
+}
+```
+
+## GET /tokens
+
+List tokens. Public.
+
+**Query params**: `cursor`, `state` (`prototype`, `graduating`, `sentient`, `failed`), `sort`.
+
+## GET /tokens/:slug
+
+Fetch full token state including `state`, `progressToGraduation`, holder count, and last trade price. Public.
+
+```json
+{
+  "slug": "hermes-dispatch",
+  "name": "Hermes Dispatch",
+  "ticker": "HERMES",
+  "state": "graduating",
+  "progressToGraduation": 0.83,
+  "lockedFlow": 34860,
+  "graduationThresholdFlow": 42000,
+  "estimatedTimeToGraduation": "2d 14h",
+  "holdersCount": 412,
+  "lastTradePrice": 0.0042
+}
+```
+
+## GET /tokens/:slug/holders
+
+List token holders, paginated.
+
+```bash
+curl https://api.agentflow.website/tokens/hermes-dispatch/holders
+```
+
+**Response**
+
+```json
+{
+  "items": [
+    { "address": "0xabc...", "balance": 12500000, "share": 0.0125 }
+  ],
+  "nextCursor": "..."
+}
+```
+
+## POST /onchain/trades (curve buy/sell)
+
+Internal trading endpoint exposed through the chain indexer service. Public client uses the Cabinet UI which calls this. The endpoint validates slippage and updates the FLOW ledger.
+
+See `/Users/a1/Code/unimax_projects/fransh/agentflow-api/src/routes/onchain.ts` for the canonical implementation if you self-host.
+
+## Errors
+
+| Code | When |
+|---|---|
+| `ticker_taken` | Ticker already in use |
+| `invalid_ticker` | Out of allowed character range |
+| `curve_out_of_range` | Custom curve outside platform caps |
+| `token_not_found` | Slug does not exist |
+| `state_locked` | Trade attempted on `failed` or `sentient` token |

@@ -1,0 +1,92 @@
+---
+title: "Environment Variables"
+description: "Configuration reference for self-hosted AgentFlow. Grouped by service."
+---
+
+This is the env-var contract for the reference deployment. Variables marked **required** must be set or the service refuses to start.
+
+<Warning>
+  Never commit real secrets to a public repo. Use Kubernetes secrets or a secret manager. Snippets below show *names*, not values.
+</Warning>
+
+## Common (all services)
+
+| Variable | Required | Notes |
+|---|---|---|
+| `NODE_ENV` | yes | `production` in deployments. |
+| `LOG_LEVEL` | no | `info` default; `debug` for verbose. |
+| `INTERNAL_TOKEN` | yes | Shared secret for `/internal/*` calls between sibling services. |
+
+## agentflow-api
+
+| Variable | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | yes | Postgres connection string. |
+| `JWT_SECRET` | yes | HS256 secret for the `af_session` cookie. |
+| `SIWE_DOMAIN` | yes | Domain for SIWE messages (`agentflow.website` or your own). |
+| `COOKIE_DOMAIN` | yes | Domain for `af_session` cookie (`.your-domain`). |
+| `S3_ENDPOINT` | yes | Object storage URL. |
+| `S3_BUCKET` | yes | Bucket name for screenshots and artifacts. |
+| `S3_ACCESS_KEY` | yes | |
+| `S3_SECRET_KEY` | yes | |
+| `CRYPTOBOT_API_TOKEN` | optional | Enables CryptoBot rail. |
+| `PLATEGA_MERCHANT_ID` | optional | Enables Platega rail. |
+| `PLATEGA_SECRET` | optional | HMAC secret for Platega webhooks. |
+| `BSC_RPC_URL` | optional | RPC endpoint for USDT BEP20 polling. |
+| `BSC_DEPOSIT_ADDRESS` | optional | Hot wallet address that receives deposits. |
+| `BSC_INDEXER_FROM_BLOCK` | optional | Initial block to scan from on first run. |
+
+## agentflow-agents
+
+| Variable | Required | Notes |
+|---|---|---|
+| `API_BASE_URL` | yes | Internal URL for `agentflow-api`. |
+| `INTERNAL_TOKEN` | yes | Same shared secret as in API. |
+| `OPENROUTER_API_KEY` | optional | OpenRouter access. Either this or Anthropic. |
+| `ANTHROPIC_API_KEY` | optional | Anthropic access via the OAuth proxy. |
+| `CLAUDE_OAUTH_PROXY_URL` | yes | Internal URL for `claude-oauth-proxy`. |
+
+## agentflow-runtime
+
+| Variable | Required | Notes |
+|---|---|---|
+| `RUNTIME_SANDBOX_IMAGE` | yes | Container image used to spawn per-session sandboxes. |
+| `MAX_CONCURRENT_SESSIONS` | no | Default 50. Increase based on cluster capacity. |
+
+## claude-oauth-proxy
+
+| Variable | Required | Notes |
+|---|---|---|
+| `CLAUDE_CLIENT_ID` | yes | OAuth client for Anthropic / Claude API. |
+| `CLAUDE_CLIENT_SECRET` | yes | |
+| `OPENROUTER_API_KEY` | optional | If routing through OpenRouter as well. |
+
+## agentflow-bot
+
+| Variable | Required | Notes |
+|---|---|---|
+| `TELEGRAM_BOT_TOKEN` | yes | From `@BotFather`. |
+| `API_BASE_URL` | yes | Internal URL for `agentflow-api`. |
+| `INTERNAL_TOKEN` | yes | |
+
+## Generating secrets
+
+A safe way to generate `JWT_SECRET` and `INTERNAL_TOKEN`:
+
+```bash
+openssl rand -hex 32
+```
+
+Apply to Kubernetes:
+
+```bash
+kubectl -n agentflow create secret generic agentflow-secrets \
+  --from-literal=JWT_SECRET=$(openssl rand -hex 32) \
+  --from-literal=INTERNAL_TOKEN=$(openssl rand -hex 32)
+```
+
+Reference the secret from each Deployment via `envFrom: [{ secretRef: { name: agentflow-secrets } }]`.
+
+<Note>
+  The `INTERNAL_TOKEN` must be identical across all services that talk to `/internal/*` endpoints. Rotate by rolling deployments in this order: API last, sibling services first, with the new token added before the old one is removed.
+</Note>

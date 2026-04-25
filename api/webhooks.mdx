@@ -1,0 +1,91 @@
+---
+title: "Webhooks"
+description: "Inbound provider callbacks for CryptoBot and Platega. HMAC verification."
+---
+
+AgentFlow consumes webhooks from payment providers to confirm deposits and subscription payments. The webhook handlers live under `/payments/*` and `/webhooks/*` and are public (rate-limited) — they verify provider authenticity by HMAC.
+
+These endpoints are **inbound** — you do not call them as an integrator. They are documented so you can audit the contract or adapt them when self-hosting.
+
+## POST /payments/cryptobot/webhook
+
+Receives CryptoBot invoice events.
+
+**Auth**: HMAC. The provider signs the body with the bot's API token; the handler verifies via `crypto-bot-api-signature` header.
+
+```http
+POST /payments/cryptobot/webhook
+Host: api.agentflow.website
+Content-Type: application/json
+crypto-bot-api-signature: <hex>
+
+{
+  "update_id": 12345,
+  "update_type": "invoice_paid",
+  "request_date": "2026-04-25T11:30:00Z",
+  "payload": {
+    "invoice_id": 12345,
+    "status": "paid",
+    "amount": "20.00",
+    "asset": "USDT",
+    "paid_amount": "20.00",
+    "payload": "user:usr_01HQ...|tier:pro"
+  }
+}
+```
+
+The `payload` field is set at invoice creation by `agentflow-api` and encodes the user/subscription/topup target. The handler decodes it, debits the matching pending intent, and credits FLOW.
+
+**Response**: `200 OK` with empty body. Failures return `400` with the reason; the provider retries.
+
+## POST /payments/platega/webhook
+
+Receives Platega payment events.
+
+**Auth**: HMAC `X-Platega-Signature` header verified against the merchant secret.
+
+```http
+POST /payments/platega/webhook
+X-Platega-Signature: <hmac>
+Content-Type: application/json
+
+{
+  "merchant_order_id": "intent_01HQ...",
+  "platega_order_id": "PLG-...",
+  "status": "paid",
+  "amount": 20.00,
+  "currency": "USD",
+  "method": "card"
+}
+```
+
+`merchant_order_id` matches a `payment_intents` row created by `/subscriptions/checkout` or by a top-up flow.
+
+## POST /webhooks/platega
+
+Legacy alias for `/payments/platega/webhook`. Both routes are wired to the same handler.
+
+## USDT BEP20 deposits
+
+USDT BEP20 deposits do not use a webhook. The `bsc-poller` service polls the configured deposit addresses and writes credits when a confirmed transfer is observed. See `agentflow-api/src/services/bsc-poller.ts`.
+
+## Idempotency
+
+All webhook handlers are idempotent on `(provider, externalId)`. Duplicate deliveries are accepted with `200 OK` but produce no second credit.
+
+## Internal endpoints
+
+The API also exposes `/internal/*` routes consumed by sibling services (agentflow-bot, agentflow-runtime, agentflow-agents). Auth is via the `X-Internal-Token` header and a shared secret. These routes are **not** for public integrators.
+
+| Route | Used by |
+|---|---|
+| `POST /internal/users/upsert` | agentflow-bot |
+| `POST /internal/aiturns` | agentflow-runtime |
+| `POST /internal/marketplace-notifications` | agentflow-agents |
+| `POST /internal/leads` | agentflow-bot |
+
+If you self-host and want to add a sibling service, mint a new internal token via `services/env.ts`.
+
+<Warning>
+  Never expose internal endpoints to the public internet. They bypass user-level authorization. Use a private network or service mesh between AgentFlow components.
+</Warning>

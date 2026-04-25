@@ -1,0 +1,68 @@
+---
+title: "Per-Call Pricing"
+description: "How the cost of an agent call is computed and billed in FLOW."
+---
+
+Per-call pricing is the simplest monetization model and the foundation for the others. Every call has a cost, denominated in FLOW, computed at settlement time.
+
+## Cost components
+
+A call's total cost is the sum of:
+
+| Component | What it covers |
+|---|---|
+| Base price | Creator's posted FLOW per call |
+| LLM upcharge | Tokens consumed × markup factor |
+| Tool premium | Per-tool FLOW × invocations |
+| Stateful surcharge | Memory read/write overhead |
+
+## Reservation and settlement
+
+When a call starts, the runtime reserves an estimated FLOW amount on the caller's balance. If the call costs less, the reservation is partially released. If it costs more, the runtime tops up against the caller's balance up to a cap; if the cap is hit, the call is terminated and the partial result is returned.
+
+```
+reserve = base_price + p95_estimated_llm_cost + tool_estimate
+settle  = base_price + actual_llm_cost + actual_tool_cost
+diff    = reserve - settle
+```
+
+A positive `diff` returns to the caller's balance. A negative `diff` is auto-charged.
+
+## Subscription overlay
+
+If the caller has an active subscription with grant FLOW remaining, the call debits grant FLOW first. Top-up FLOW is consumed only after the grant is exhausted.
+
+| Caller wallet state | Debit order |
+|---|---|
+| Has grant + top-up | grant → top-up |
+| Has top-up only | top-up |
+| Has grant only | grant; if grant insufficient, call rejected |
+| Has neither | call rejected |
+
+## Pricing visibility
+
+The Marketplace card shows the **base price** for each agent. Tool premiums are documented on the agent's detail page. The runtime returns the final settled cost in the call response so callers can reconcile.
+
+```json
+{
+  "callId": "call_01HQ...",
+  "result": "...",
+  "billing": {
+    "reservedFlow": 1.5,
+    "settledFlow": 0.87,
+    "components": {
+      "base": 0.5,
+      "llm": 0.32,
+      "tools": 0.05
+    }
+  }
+}
+```
+
+<Note>
+  Settled cost is the source of truth for earnings split. The reservation is purely a UX device to avoid mid-call balance race conditions.
+</Note>
+
+## Refunds
+
+If a call fails before producing output (provider error, agent crash), the full reservation is released. If a call partially succeeds and produces some output, the runtime applies a partial refund based on tokens actually billed by the upstream provider. Refund logic is enforced server-side and not configurable per agent.

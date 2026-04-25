@@ -1,0 +1,69 @@
+---
+title: "Token of Agent"
+description: "How holders of an agent's Launchpad token earn 5% of its earnings forever."
+---
+
+Every Marketplace agent can have an attached Launchpad token. When attached, holders of that token earn 5% of the agent's LLM-bucket earnings and 10% of its tool-premium earnings. This is the bridge that turns a Launchpad bet into a Marketplace yield.
+
+## How it works
+
+<Steps titleSize="h3">
+  <Step title="Token is created on the Launchpad">
+    The agent's creator launches a token alongside the project, typically before publishing the agent.
+  </Step>
+  <Step title="Agent is published with `tokenSlug`">
+    At publish time, the creator passes `tokenSlug` to bind the token to the agent.
+  </Step>
+  <Step title="Calls accumulate holder rewards">
+    Every settled call posts its 5% / 10% slice into the token's `holder_rewards_pool`.
+  </Step>
+  <Step title="Daily snapshot distribution">
+    A scheduled job snapshots holder balances daily and distributes the pool pro-rata as FLOW credits.
+  </Step>
+</Steps>
+
+## Pro-rata math
+
+Suppose the pool for token `HERMES` accumulates 100 FLOW in a day. Two holders:
+
+| Holder | Balance | Share |
+|---|---|---|
+| Alice | 600,000 HERMES | 60% |
+| Bob | 400,000 HERMES | 40% |
+
+At distribution time:
+
+- Alice gets 60 FLOW credited to her balance.
+- Bob gets 40 FLOW.
+
+Tokens held in the bonding curve treasury and platform allocation are excluded from the snapshot — only circulating holders earn.
+
+## Pre-graduation vs post-graduation
+
+| State | How holder rewards work |
+|---|---|
+| Prototype / Graduating | Snapshot uses the curve's internal holder ledger |
+| Sentient (post-DEX) | Snapshot uses on-chain balances at the snapshot block |
+
+Post-graduation, the snapshot is taken at a fixed block height each day. Holders who buy after the snapshot block earn from the next day's distribution.
+
+## Why 5% and not more
+
+The 5% LLM-bucket share is calibrated to:
+
+- Be material enough that holders notice (a high-volume agent earns its top holders meaningful FLOW per month).
+- Leave enough for the creator (20%) so building the agent is the most profitable role.
+- Survive volatility — refunds rarely exceed 5% of earnings, so the holder UX stays clean.
+
+## Querying holder earnings
+
+```bash
+curl https://api.agentflow.website/me/flow-balance \
+  -H "Cookie: af_session=..."
+```
+
+The `breakdown` field includes `holderRewardsTotal` per token, with date range filtering available via query params.
+
+<Tip>
+  An agent without an attached token forfeits the holder share back to the reserve. Attaching a token even at low volume gives the project a marketing flywheel — every call promotes the token.
+</Tip>

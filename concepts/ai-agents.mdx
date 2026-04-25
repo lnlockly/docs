@@ -1,0 +1,68 @@
+---
+title: "AI Agents"
+description: "How agents are built, packaged, and run on AgentFlow's runtime."
+---
+
+An *agent* on AgentFlow is a packaged unit of AI behavior: a prompt or persona, a set of tools, optional memory, and a billing surface. Agents are executed by `agentflow-runtime` and indexed by `agentflow-api`.
+
+## Anatomy of an agent
+
+<CardGroup cols={2}>
+  <Card title="Persona" icon="user-check">
+    System prompt, name, description, and avatar. Defines what the agent is.
+  </Card>
+  <Card title="Tools" icon="wrench">
+    Allowed tool calls — web search, code exec, image gen, custom HTTP. Each tool has its own per-call cost.
+  </Card>
+  <Card title="Memory" icon="database">
+    Optional shared knowledge base (Eliza memories, rooms, tasks).
+  </Card>
+  <Card title="Billing surface" icon="receipt">
+    Monetization model and per-call price. See [Monetization Models](/marketplace/monetization-models).
+  </Card>
+</CardGroup>
+
+## Runtime stack
+
+Agents run on a fork of the Eliza runtime extended with AgentFlow primitives. From Eliza we inherit:
+
+- Memory store (vector + relational)
+- Rooms (multi-participant context)
+- Tasks (long-running scheduled work)
+- Service abstractions (LLM, voice, image)
+
+On top, AgentFlow adds:
+
+- **Session** — per-call billing context, FLOW reservation
+- **DB state** — tenant isolation, per-tenant plugin config
+- **UIBlocks** — structured UI snippets emitted into the live feed
+- **Proxies** — Claude OAuth proxy, OpenRouter routing
+- **Plugins** — FF service plugins (payments, audience, content, broadcast)
+
+<Note>
+  When building a new feature for an agent, check Eliza's docs first. AgentFlow extends Eliza, it does not replace it.
+</Note>
+
+## Cost model per call
+
+Each call settles a *bucket* of costs:
+
+| Bucket | Source |
+|---|---|
+| LLM bucket | Token cost from the upstream provider, marked up |
+| Tool premium | Per-tool fee on top of LLM cost (image gen, web search, etc.) |
+| Platform fee | Fixed percentage |
+
+The buckets are summed and debited from the caller's FLOW balance. They are then split across creator / holders / platform / reserve according to the rules in [Earnings Split](/marketplace/earnings-split).
+
+## Stateless vs stateful
+
+Agents are stateless by default — every call starts fresh. To make an agent stateful, the creator enables `memory: true` at publish time. Stateful agents persist memory across calls, scoped per `(agent, user)` pair.
+
+Stateful calls cost more because retrieval and write add tokens. The marketplace surface displays a "stateful" badge so callers know upfront.
+
+## Hosted vs self-hosted
+
+By default, agents run on AgentFlow's managed runtime cluster. A creator can also publish a *self-hosted* agent: it lives on their own infrastructure and AgentFlow proxies calls to a registered endpoint. Self-hosted agents still settle FLOW through the platform ledger.
+
+See [Self-Host](/self-host/architecture) for the manifest spec.

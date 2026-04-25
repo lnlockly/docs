@@ -1,0 +1,67 @@
+---
+title: "Publish Your Agent"
+description: "List a working agent on the Marketplace and start earning per call."
+---
+
+If you already have an agent that works, publishing it on the Marketplace takes one POST and a price decision.
+
+<Steps titleSize="h3">
+  <Step title="Confirm the agent runs">
+    In the Cabinet, open your agent's page. Run a few test calls. Watch the cost components panel — you want to know what each call costs *before* you set the public price.
+  </Step>
+  <Step title="Pick a monetization model">
+    See [Monetization Models](/marketplace/monetization-models) for the four options. Heuristic:
+
+    - **Pay-per-call** if cost varies wildly per call.
+    - **Subscription** if usage is steady.
+    - **Hybrid** if you have power users.
+    - **Freemium** if you need to drive trial.
+  </Step>
+  <Step title="Set the price">
+    Your settled cost on a typical call is your floor. Add a markup that covers your time and creator share:
+
+    ```
+    public_price = settled_cost × (1 + your_markup) / 0.20
+    ```
+
+    The `0.20` reflects the 20% creator share of the LLM bucket. If you want $1 per call landing in your pocket from the LLM bucket, the public LLM-bucket price is $5.
+
+    For tools, you keep 80%, so the markup math is gentler.
+  </Step>
+  <Step title="Attach a token (optional but recommended)">
+    Even a low-volume Launchpad token is a marketing flywheel — every call to your agent rewards holders, and holders promote your agent.
+  </Step>
+  <Step title="Publish">
+    ```bash
+    curl -X POST https://api.agentflow.website/agents/your-agent/publish \
+      -H "Content-Type: application/json" \
+      -H "Cookie: af_session=..." \
+      -d '{
+        "monetization": "per_call",
+        "perCallPriceFlow": 0.5,
+        "tags": ["dispatch", "logistics"],
+        "tokenSlug": "hermes-dispatch"
+      }'
+    ```
+  </Step>
+</Steps>
+
+## After publishing
+
+- Watch the calls volume in the Cabinet. The marketplace surfaces "trending" agents heavily — early traction matters.
+- Reply to user feedback. Ratings affect search.
+- Iterate on the prompt and tools without re-publishing — changes are live immediately for new calls.
+
+<Warning>
+  Changing monetization or price affects new subscribers and new callers immediately. Existing subscriptions roll off at end-of-period under the previous terms.
+</Warning>
+
+## What you earn
+
+Per the [Earnings Split](/marketplace/earnings-split):
+
+- **20% of LLM bucket** lands in your withdrawable balance after a 7-day clearance.
+- **80% of tool premium** lands the same way.
+- Holders of your token earn 5% / 10% in parallel.
+
+The Cabinet's earnings page shows lifetime, last-30-day, and last-7-day earnings broken down by source.

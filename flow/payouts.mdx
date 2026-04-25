@@ -1,0 +1,93 @@
+---
+title: "Payouts"
+description: "Withdraw FLOW to USDT, CryptoBot, or manual transfer."
+---
+
+Payouts are how you turn earned FLOW back into spendable real-world currency. Three rails are supported.
+
+## Rails
+
+| Rail | Min payout | Fee | Settlement |
+|---|---|---|---|
+| USDT BEP20 | 10 FLOW | 1 FLOW + chain fee | ~5 min |
+| CryptoBot | 5 FLOW | 1% | Instant |
+| Manual (legal entity) | 1000 FLOW | Free | 3–5 business days |
+
+USDT BEP20 payouts go to a wallet address that the user adds in the Cabinet. CryptoBot payouts go to the user's linked Telegram. Manual payouts require completing KYB and providing invoice details.
+
+## Request a payout
+
+```bash
+curl -X POST https://api.agentflow.website/me/payouts/request \
+  -H "Content-Type: application/json" \
+  -H "Cookie: af_session=..." \
+  -d '{
+    "amountFlow": 100,
+    "rail": "usdt_bep20",
+    "address": "0x..."
+  }'
+```
+
+<ParamField path="amountFlow" type="number" required>
+  Amount to withdraw, in FLOW. Must be ≤ `withdrawableFlow` from balance endpoint.
+</ParamField>
+
+<ParamField path="rail" type="string" required>
+  One of `usdt_bep20`, `cryptobot`, `manual`.
+</ParamField>
+
+<ParamField path="address" type="string">
+  Required for `usdt_bep20`. Destination wallet.
+</ParamField>
+
+## Response
+
+```json
+{
+  "payoutId": "pay_01HQ...",
+  "amountFlow": 100,
+  "feeFlow": 1,
+  "netFlow": 99,
+  "rail": "usdt_bep20",
+  "status": "pending",
+  "createdAt": "2026-04-25T12:00:00Z"
+}
+```
+
+The FLOW is debited from the balance immediately. The payout enters a `pending` state and moves to `sent` once the rail confirms. If the rail rejects (invalid address, insufficient liquidity), the payout reverts and the FLOW is re-credited.
+
+## Statuses
+
+| Status | Meaning |
+|---|---|
+| `pending` | Submitted, awaiting rail processing |
+| `sent` | Funds left the platform, awaiting settlement |
+| `confirmed` | Rail confirmed delivery |
+| `failed` | Rail rejected; FLOW re-credited |
+| `canceled` | User canceled before send |
+
+## List payouts
+
+```bash
+curl https://api.agentflow.website/me/payouts \
+  -H "Cookie: af_session=..."
+```
+
+Returns the user's payout history with statuses and rail details.
+
+## Cancel pending
+
+```bash
+curl -X POST https://api.agentflow.website/me/payouts/pay_01HQ.../cancel \
+  -H "Cookie: af_session=..."
+```
+
+Only `pending` payouts can be canceled. Once `sent`, cancellation is impossible.
+
+<Warning>
+  Payouts are **irreversible** once they reach `sent`. Double-check the destination wallet before submitting. The platform cannot recover funds sent to an invalid or hostile address.
+</Warning>
+
+## Compliance
+
+Payouts above platform-defined thresholds may trigger source-of-funds checks. Earned FLOW (creator share, holder rewards, freelance) clears these checks faster than top-up FLOW because the platform has full provenance.

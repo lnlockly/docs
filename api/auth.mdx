@@ -1,0 +1,150 @@
+---
+title: "Auth"
+description: "Sign-In With Ethereum and Telegram login. JWT cookie session."
+---
+
+AgentFlow supports two login mechanisms: SIWE (any EVM wallet) and Telegram. Both result in the same JWT cookie session.
+
+## POST /auth/nonce
+
+Request a SIWE nonce. The nonce binds the wallet's signed message to a single login attempt and prevents replay.
+
+**Auth**: none.
+
+<ParamField body="address" type="string" required>
+  EVM address that will sign. Lowercase 0x-prefixed.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.agentflow.website/auth/nonce \
+  -H "Content-Type: application/json" \
+  -d '{ "address": "0xabc..." }'
+```
+
+```javascript fetch
+const { nonce, message } = await fetch(
+  "https://api.agentflow.website/auth/nonce",
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ address }),
+  },
+).then((r) => r.json());
+```
+
+```python httpx
+import httpx
+
+r = httpx.post(
+    "https://api.agentflow.website/auth/nonce",
+    json={"address": address},
+)
+nonce, message = r.json()["nonce"], r.json()["message"]
+```
+</CodeGroup>
+
+**Response**
+
+```json
+{
+  "nonce": "h4d0...",
+  "message": "agentflow.website wants you to sign in with your Ethereum account: 0xabc...\n\nNonce: h4d0...",
+  "expiresAt": "2026-04-25T10:35:00Z"
+}
+```
+
+The nonce expires in 5 minutes. Use it once.
+
+## POST /auth/verify
+
+Verify the SIWE signature and issue a session cookie.
+
+**Auth**: none.
+
+<ParamField body="address" type="string" required>
+  Same address used in `/auth/nonce`.
+</ParamField>
+
+<ParamField body="message" type="string" required>
+  The exact SIWE message returned by `/auth/nonce`.
+</ParamField>
+
+<ParamField body="signature" type="string" required>
+  Hex-encoded signature from the wallet.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.agentflow.website/auth/verify \
+  -H "Content-Type: application/json" \
+  -c cookies.txt \
+  -d '{
+    "address": "0xabc...",
+    "message": "agentflow.website wants you to sign in...",
+    "signature": "0x..."
+  }'
+```
+
+```javascript fetch
+const res = await fetch("https://api.agentflow.website/auth/verify", {
+  method: "POST",
+  credentials: "include",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ address, message, signature }),
+});
+```
+</CodeGroup>
+
+**Response**
+
+```json
+{
+  "user": {
+    "id": "usr_01HQ...",
+    "address": "0xabc...",
+    "displayName": "0xabc..."
+  }
+}
+```
+
+Plus a `Set-Cookie: af_session=...; HttpOnly; Secure; SameSite=Lax`.
+
+## POST /auth/telegram
+
+Used by the Telegram bot to mint a session for a Telegram user. Public integrators do not call this directly.
+
+<ParamField body="initData" type="string" required>
+  Telegram WebApp initData payload, validated against the bot token.
+</ParamField>
+
+**Response**: same as `/auth/verify`, plus the linked Telegram identity in `user.telegram`.
+
+## POST /auth/access-code
+
+Sign in or sign up via a one-time access code. Used in onboarding flows that bypass wallet/Telegram.
+
+<ParamField body="code" type="string" required>
+  Single-use access code.
+</ParamField>
+
+## POST /auth/logout
+
+Clear the session cookie. **Auth**: required.
+
+```bash
+curl -X POST https://api.agentflow.website/auth/logout \
+  -H "Cookie: af_session=..."
+```
+
+Returns `204 No Content`.
+
+## Errors
+
+| Code | When |
+|---|---|
+| `nonce_expired` | Nonce older than 5 minutes |
+| `nonce_used` | Nonce already verified |
+| `signature_invalid` | Signature does not match address |
+| `telegram_invalid` | initData hash mismatch |
+| `code_invalid` | Access code not found or used |

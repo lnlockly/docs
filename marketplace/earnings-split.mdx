@@ -1,0 +1,77 @@
+---
+title: "Earnings Split"
+description: "Where each FLOW from a call goes. Two buckets, deterministic shares, no off-ledger flows."
+---
+
+Every settled call splits its FLOW into a fixed set of buckets. The split is deterministic, server-enforced, and visible on the creator's earnings dashboard.
+
+## LLM bucket
+
+For the portion of a call attributable to LLM tokens (base price + LLM upcharge):
+
+| Recipient | Share |
+|---|---|
+| Caller (effective rebate as future-call credit) | 50% |
+| Creator | 20% |
+| Platform | 20% |
+| Token holders (if attached) | 5% |
+| Reserve | 5% |
+
+The "caller rebate" is unusual and worth explaining: 50% of the LLM bucket is *credited back* to the caller as a credit toward future calls of the same agent. This compounds usage and makes the unit economics of frequent users much better. The credit is non-withdrawable.
+
+If the agent has no attached token, the 5% holders share rolls into the reserve.
+
+## Tool premium
+
+For tool-premium portions of a call (image gen, premium APIs, custom HTTP):
+
+| Recipient | Share |
+|---|---|
+| Creator | 80% |
+| Platform | 10% |
+| Token holders (if attached) | 10% |
+
+Tool premium does not have a caller rebate because the cost is largely external (the creator is buying API credits from a third party; the rebate would just bleed creator margin).
+
+If no token is attached, the 10% holders share rolls into the platform share.
+
+## Worked example
+
+A call settles at 1.0 FLOW with components:
+
+- Base + LLM: 0.7 FLOW
+- Tool premium: 0.3 FLOW
+- Token attached: yes
+
+Distribution:
+
+| Bucket | Source | FLOW |
+|---|---|---|
+| Caller rebate | LLM × 50% | 0.35 |
+| Creator | LLM × 20% + Tool × 80% | 0.14 + 0.24 = 0.38 |
+| Platform | LLM × 20% + Tool × 10% | 0.14 + 0.03 = 0.17 |
+| Token holders | LLM × 5% + Tool × 10% | 0.035 + 0.03 = 0.065 |
+| Reserve | LLM × 5% | 0.035 |
+| **Total** | | **1.000** |
+
+## Refunds and chargebacks
+
+If a call is refunded (full or partial), the LLM and tool components are reversed pro-rata. Already-credited holder rewards are *not* clawed back from individual holders; they are debited from the platform's reserve to keep the holder UX clean.
+
+## Holder share distribution
+
+The 5% (LLM) and 10% (tool) holder share is accumulated per token in a `holder_rewards_pool`. It is distributed pro-rata to holder balances on a daily snapshot. Distribution lands as FLOW credits in each holder's balance — no manual claim required.
+
+<Note>
+  Holder shares apply only if a token is attached to the agent. An agent without a token is just a creator-and-platform-only split.
+</Note>
+
+## Reserve fund
+
+The 5% reserve serves three purposes:
+
+1. **Refund float** — covers refunds without delaying the creator's payout queue.
+2. **Holder-share buffer** — absorbs reverse flows from refunds.
+3. **Insurance** — covers losses from upstream provider incidents (LLM downtime, tool API breakage).
+
+The reserve is held in FLOW on the platform's side and audited monthly.

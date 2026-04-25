@@ -1,72 +1,122 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mintlify Starter Kit",
+  "name": "AgentFlow",
+  "description": "AgentFlow is a launchpad, marketplace, and freelance bridge for AI agents. Create tokens, attach projects, monetize agents per call.",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#d4ff00",
+    "light": "#e6ff66",
+    "dark": "#9bbf00"
   },
-  "favicon": "/favicon.svg",
+  "logo": {
+    "light": "/images/logo/light.svg",
+    "dark": "/images/logo/dark.svg",
+    "href": "https://agentflow.website"
+  },
+  "favicon": "/images/favicon.svg",
+  "appearance": {
+    "default": "dark"
+  },
+  "fonts": {
+    "family": "Inter"
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "background": {
+    "decoration": "gradient"
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Getting Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Concepts",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "concepts/three-pillars",
+              "concepts/flow-credits",
+              "concepts/bonding-curve",
+              "concepts/live-build",
+              "concepts/ai-agents"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Launchpad",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/components",
-              "essentials/reusable-snippets"
+              "launchpad/overview",
+              "launchpad/create-token",
+              "launchpad/attach-project",
+              "launchpad/watch-live",
+              "launchpad/tokenomics-per-project",
+              "launchpad/graduation"
             ]
           },
           {
-            "group": "Agent ready",
+            "group": "Marketplace",
             "pages": [
-              "agent-ready/prompt",
-              "agent-ready/visibility",
-              "agent-ready/contextual",
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "marketplace/overview",
+              "marketplace/publish-agent",
+              "marketplace/per-call-pricing",
+              "marketplace/monetization-models",
+              "marketplace/earnings-split",
+              "marketplace/token-of-agent"
+            ]
+          },
+          {
+            "group": "FLOW Credits",
+            "pages": [
+              "flow/overview",
+              "flow/subscriptions",
+              "flow/earn",
+              "flow/payouts"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/launch-your-first-token",
+              "guides/publish-your-agent",
+              "guides/earn-flow-as-creator",
+              "guides/build-an-app-with-flow"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "API",
             "pages": [
-              "api-reference/introduction"
+              "api/overview",
+              "api/auth",
+              "api/marketplace",
+              "api/tokens",
+              "api/projects",
+              "api/flow-balance",
+              "api/subscriptions",
+              "api/webhooks"
             ]
-          },
+          }
+        ]
+      },
+      {
+        "tab": "Self-Host",
+        "groups": [
           {
-            "group": "Endpoint examples",
+            "group": "Operate Your Own Instance",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "self-host/architecture",
+              "self-host/kubernetes",
+              "self-host/env-variables"
             ]
           }
         ]
@@ -75,52 +125,81 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "anchor": "Cabinet",
+          "href": "https://agentflow.website/account",
+          "icon": "user"
         },
         {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "Marketplace",
+          "href": "https://agentflow.website/marketplace",
+          "icon": "store"
+        },
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/lnlockly/agentflow-api",
+          "icon": "github"
         }
       ]
     }
   },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Cabinet",
+        "href": "https://agentflow.website/account"
+      },
+      {
+        "label": "Marketplace",
+        "href": "https://agentflow.website/marketplace"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Launch App",
+      "href": "https://agentflow.website"
     }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+      "x": "https://x.com/agentflow",
+      "telegram": "https://t.me/AIAgentFlow_bot",
+      "github": "https://github.com/lnlockly/agentflow-api",
+      "discord": "https://discord.gg/agentflow"
+    },
+    "links": [
+      {
+        "header": "Product",
+        "items": [
+          { "label": "Launchpad", "href": "/launchpad/overview" },
+          { "label": "Marketplace", "href": "/marketplace/overview" },
+          { "label": "FLOW Credits", "href": "/flow/overview" }
+        ]
+      },
+      {
+        "header": "Developers",
+        "items": [
+          { "label": "API Reference", "href": "/api/overview" },
+          { "label": "Self-Host", "href": "/self-host/architecture" },
+          { "label": "GitHub", "href": "https://github.com/lnlockly/agentflow-api" }
+        ]
+      },
+      {
+        "header": "Resources",
+        "items": [
+          { "label": "Whitepaper", "href": "https://agentflow.website/whitepaper" },
+          { "label": "Telegram Bot", "href": "https://t.me/AIAgentFlow_bot" }
+        ]
+      }
+    ]
+  },
+  "search": {
+    "prompt": "Ask AgentFlow docs..."
+  },
+  "seo": {
+    "metatags": {
+      "og:site_name": "AgentFlow Docs",
+      "og:image": "/images/og-image.png"
+    },
+    "indexing": "navigable"
   }
 }

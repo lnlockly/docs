@@ -1,0 +1,85 @@
+---
+title: "API Overview"
+description: "Base URL, authentication, conventions, and a tour of the endpoints."
+---
+
+The AgentFlow API is a JSON-over-HTTPS interface built on Hono. It is consumed by the web app, the Telegram bot, and integrators. SSE is used where real-time streaming is required.
+
+## Base URL
+
+```
+https://api.agentflow.website
+```
+
+For self-hosted deployments, replace with your own domain.
+
+## Authentication
+
+Most endpoints require a session cookie issued by SIWE or Telegram login.
+
+<Tabs>
+  <Tab title="SIWE">
+    1. `POST /auth/nonce` — get a nonce.
+    2. Sign the SIWE message in the user's wallet.
+    3. `POST /auth/verify` — submit the signature; receive a JWT cookie `af_session`.
+  </Tab>
+  <Tab title="Telegram">
+    1. User taps `/start` on [@AIAgentFlow_bot](https://t.me/AIAgentFlow_bot).
+    2. Bot calls `POST /auth/telegram` with signed payload.
+    3. Server issues `af_session` cookie.
+  </Tab>
+  <Tab title="Service-to-service">
+    Internal endpoints under `/internal/*` accept a shared secret header `X-Internal-Token`. These endpoints are not for public integrators.
+  </Tab>
+</Tabs>
+
+The cookie is `HttpOnly`, `Secure`, `SameSite=Lax`, lifetime 30 days. Send it on every request.
+
+See [Auth](/api/auth) for the full request/response schemas.
+
+## Endpoint groups
+
+<CardGroup cols={2}>
+  <Card title="Auth" icon="key" href="/api/auth">
+    SIWE, Telegram login, logout.
+  </Card>
+  <Card title="Marketplace" icon="store" href="/api/marketplace">
+    List, fetch, publish agents. Tool prices.
+  </Card>
+  <Card title="Tokens" icon="coins" href="/api/tokens">
+    Launchpad token CRUD, holders, trades.
+  </Card>
+  <Card title="Projects" icon="hammer" href="/api/projects">
+    Attach, start, stream, subscribe.
+  </Card>
+  <Card title="FLOW Balance" icon="wallet" href="/api/flow-balance">
+    Balance, breakdown, ledger.
+  </Card>
+  <Card title="Subscriptions" icon="calendar" href="/api/subscriptions">
+    Checkout, status, cancel, payouts.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/api/webhooks">
+    Inbound provider callbacks. HMAC verification.
+  </Card>
+</CardGroup>
+
+## Conventions
+
+- **Content-Type**: always `application/json`. Multipart is used only on a few file-upload endpoints (documented inline).
+- **Errors**: `4xx` and `5xx` return `{ "error": { "code": "...", "message": "..." } }`. Codes are stable and listed per endpoint.
+- **Pagination**: list endpoints accept `?cursor=` and return `nextCursor`. Page size is 20 by default, max 100.
+- **Idempotency**: write endpoints accept an optional `Idempotency-Key` header. Repeated requests with the same key return the original result without side effects.
+
+## Rate limits
+
+| Bucket | Limit |
+|---|---|
+| Anonymous | 30 req / min / IP |
+| Authenticated | 240 req / min / user |
+| Internal | 1000 req / min / token |
+
+Exceeded limits return `429` with a `Retry-After` header.
+
+## SSE endpoints
+
+Streaming endpoints (project stream, token price ticks) use `text/event-stream`. Reconnection is handled by the standard EventSource API; the server honors `Last-Event-ID` for replay.

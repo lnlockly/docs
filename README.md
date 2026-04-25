@@ -1,55 +1,85 @@
-# Mintlify Starter Kit
+# AgentFlow Documentation
 
-Use the starter kit to get your docs deployed and ready to customize.
+Mintlify-powered documentation source for AgentFlow.
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+This repo holds the MDX files, configuration, and assets that compile into the public docs site at `docs.agentflow.website` (or whichever subdomain you bind).
 
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
+## Layout
 
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
+```
+.
+├── docs.json                # Mintlify config (theme, navigation, branding)
+├── introduction.mdx
+├── quickstart.mdx
+├── concepts/                # Conceptual overviews
+├── launchpad/               # Launchpad surface
+├── marketplace/             # Marketplace surface
+├── flow/                    # FLOW credits, subscriptions, payouts
+├── api/                     # API reference
+├── guides/                  # Task-oriented guides
+├── self-host/               # Self-hosting docs
+└── images/                  # Logos, favicon, OG images
+```
 
-## AI-assisted writing
+## Local preview
 
-Set up your AI coding tool to work with Mintlify:
+Install the Mintlify CLI:
 
 ```bash
-npx skills add https://mintlify.com/docs
+npm i -g mintlify
 ```
 
-This command installs Mintlify's documentation skill for your configured AI tools like Claude Code, Cursor, Windsurf, and others. The skill includes component reference, writing standards, and workflow guidance.
+From the repo root:
 
-See the [AI tools guides](/ai-tools) for tool-specific setup.
-
-## Development
-
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
-
-```
-npm i -g mint
+```bash
+mintlify dev
 ```
 
-Run the following command at the root of your documentation, where your `docs.json` is located:
+The CLI starts a local server (default `http://localhost:3000`) with hot reload on MDX edits.
 
-```
-mint dev
-```
+## Deploying
 
-View your local preview at `http://localhost:3000`.
+Mintlify builds and serves the site from a connected GitHub repo. Owner action:
 
-## Publishing changes
+1. Push this repo to GitHub.
+2. Go to [mintlify.com](https://mintlify.com) and sign in.
+3. Click **New project** → **Connect GitHub** and select this repo.
+4. Mintlify auto-deploys to `<workspace>.mintlify.app`.
+5. (Optional) In the Mintlify dashboard, add a custom domain — for example `docs.agentflow.website`. Mintlify shows the CNAME target; create the CNAME in your DNS provider.
+6. Every subsequent `git push` to the default branch redeploys.
 
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
+No build step or CI configuration is required on this repo. Mintlify handles everything.
 
-## Need help?
+## Editing
 
-### Troubleshooting
+- All content is `.mdx` (Markdown + JSX components).
+- Available components are documented at https://mintlify.com/docs/components — every component used here (`Card`, `CardGroup`, `Steps`, `Step`, `Tabs`, `Tab`, `Note`, `Warning`, `Tip`, `CodeGroup`, `ParamField`, `ResponseField`) is part of the standard Mintlify set, no extra installation needed.
+- Each page starts with frontmatter:
 
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
+  ```mdx
+  ---
+  title: "Page Title"
+  description: "One-line meta description"
+  ---
+  ```
 
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+- Internal links use absolute paths without the `.mdx` extension: `/api/auth`, not `./auth.mdx`.
+
+## Navigation
+
+Edit `docs.json` to add, reorder, or rename pages. The `navigation.tabs[*].groups[*].pages` arrays drive the sidebar.
+
+## Branding
+
+- Accent color is set in `docs.json` → `colors.primary` (`#d4ff00`).
+- Logos live in `images/logo/{light,dark}.svg`.
+- Favicon is `images/favicon.svg`.
+- Default appearance is `dark`; users can switch.
+
+## Contributing
+
+Open a PR against the default branch. Mintlify previews the changes on a per-PR URL so reviewers can see the rendered output.
+
+## License
+
+Documentation is licensed under CC-BY-4.0. Code samples in this repo are MIT-licensed unless noted otherwise.

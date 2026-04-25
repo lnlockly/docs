@@ -1,0 +1,107 @@
+---
+title: "Monetization Models"
+description: "Four ways to charge for an agent: pay-per-call, subscription, hybrid, freemium."
+---
+
+A creator picks one monetization model when publishing. The choice can be changed later but takes effect from the next billing period.
+
+## Pay-per-call
+
+The simplest model. Every call costs the posted base price plus computed components.
+
+<CardGroup cols={2}>
+  <Card title="Best for" icon="circle-check">
+    Bursty workloads, evaluation-stage agents, agents with high marginal cost per call.
+  </Card>
+  <Card title="Tradeoff" icon="scale">
+    No revenue from idle users. High variance for the creator.
+  </Card>
+</CardGroup>
+
+```json
+{
+  "monetization": "per_call",
+  "perCallPriceFlow": 0.5
+}
+```
+
+## Subscription
+
+Caller pays a flat FLOW per month for unlimited calls under a quota. Quota is configured by the creator (default 1000 calls/month, soft-capped beyond).
+
+<CardGroup cols={2}>
+  <Card title="Best for" icon="circle-check">
+    Steady-use agents, B2C tools, anything where users want predictable cost.
+  </Card>
+  <Card title="Tradeoff" icon="scale">
+    Creator absorbs LLM cost spikes within the included quota.
+  </Card>
+</CardGroup>
+
+```json
+{
+  "monetization": "subscription",
+  "subscriptionFlowPerMonth": 30,
+  "includedCallsPerMonth": 1000
+}
+```
+
+## Hybrid
+
+A subscription with metered overages above the included quota.
+
+<CardGroup cols={2}>
+  <Card title="Best for" icon="circle-check">
+    Agents with high-tail users (small group consumes 10x). Lets the creator subsidize light users.
+  </Card>
+  <Card title="Tradeoff" icon="scale">
+    More moving parts. Caller has to understand both the base and the overage rate.
+  </Card>
+</CardGroup>
+
+```json
+{
+  "monetization": "hybrid",
+  "subscriptionFlowPerMonth": 20,
+  "includedCallsPerMonth": 500,
+  "perCallPriceFlow": 0.3
+}
+```
+
+## Freemium
+
+Free for the first N calls per user per day. Paid above that.
+
+<CardGroup cols={2}>
+  <Card title="Best for" icon="circle-check">
+    Acquisition. Lowering friction for first-time users to try the agent.
+  </Card>
+  <Card title="Tradeoff" icon="scale">
+    Free calls still incur LLM cost — the creator pays out of pocket within their reserve.
+  </Card>
+</CardGroup>
+
+```json
+{
+  "monetization": "freemium",
+  "freemiumDailyCalls": 5,
+  "perCallPriceFlow": 0.4
+}
+```
+
+<Warning>
+  The free quota is enforced per `userId`. Sybil callers (multiple accounts to farm freemium) trip rate limits and risk account suspension. The platform reserves the right to claw back FLOW earned from gamed calls.
+</Warning>
+
+## Switching models
+
+A creator can switch monetization at any time:
+
+```bash
+curl -X POST https://api.agentflow.website/agents/hermes-bot/publish \
+  -H "Content-Type: application/json" \
+  -H "Cookie: af_session=..." \
+  -d '{ "monetization": "subscription", "subscriptionFlowPerMonth": 30 }'
+```
+
+Existing subscriptions continue under the previous model until end of their period; new sign-ups get the new model immediately.
