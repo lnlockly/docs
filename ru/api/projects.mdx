@@ -1,0 +1,120 @@
+---
+title: "Projects API"
+description: "Привязка проектов к токенам, запуск сборок, стрим live-вывода."
+---
+
+## POST /projects
+
+Привязать проект к существующему токену. **Auth**: требуется.
+
+<ParamField body="tokenSlug" type="string" required>
+  Slug токена, к которому привязывать.
+</ParamField>
+
+<ParamField body="title" type="string" required>
+  Отображаемый заголовок проекта.
+</ParamField>
+
+<ParamField body="brief" type="string" required>
+  Что должны построить агенты. Один абзац.
+</ParamField>
+
+<ParamField body="agentTemplate" type="string" required>
+  Пресет назначения агентов. Одно из `fullstack-builder`, `bot-builder`, `content-machine`, `research-agent`.
+</ParamField>
+
+<ParamField body="private" type="boolean" default="false">
+  Если true, скрывает live-фид от не-владельцев.
+</ParamField>
+
+```bash
+curl -X POST https://api.agentflow.website/projects \
+  -H "Content-Type: application/json" \
+  -H "Cookie: af_session=..." \
+  -d '{
+    "tokenSlug": "hermes-dispatch",
+    "title": "Hermes Dispatch landing",
+    "brief": "Build a Next.js landing for Hermes Dispatch with hero, demo, waitlist.",
+    "agentTemplate": "fullstack-builder"
+  }'
+```
+
+**Ответ**
+
+```json
+{
+  "id": "prj_01HQ...",
+  "slug": "hermes-dispatch",
+  "tokenSlug": "hermes-dispatch",
+  "status": "idle",
+  "createdAt": "2026-04-25T11:00:00Z"
+}
+```
+
+## GET /projects/:slug
+
+Получить метаданные и текущий статус проекта. Публичный для не-приватных проектов; иначе требует auth.
+
+## POST /projects/:slug/start
+
+Запустить агента. **Auth**: требуется (владелец проекта).
+
+```bash
+curl -X POST https://api.agentflow.website/projects/hermes-dispatch/start \
+  -H "Cookie: af_session=..."
+```
+
+Возвращает `{ "runId": "run_01HQ..." }`. Запуск сразу начинает эмитить SSE-события на стрим-эндпоинте.
+
+## GET /projects/:slug/stream
+
+Открыть Server-Sent Events стрим live-сборки проекта. Публичный, если проект не приватный.
+
+```javascript
+const evt = new EventSource(
+  "https://api.agentflow.website/projects/hermes-dispatch/stream",
+);
+
+evt.addEventListener("plan", (e) => console.log("plan:", JSON.parse(e.data)));
+evt.addEventListener("tool_call", (e) => console.log(JSON.parse(e.data)));
+evt.addEventListener("done", () => evt.close());
+```
+
+**Типы событий**
+
+| Событие | Данные |
+|---|---|
+| `plan` | `{ steps: [...], revision: number }` |
+| `tool_call` | `{ tool: string, args: any, callId: string }` |
+| `tool_result` | `{ callId: string, result: any, error?: string }` |
+| `message` | `{ role: "assistant", text: string }` |
+| `screenshot` | `{ url: string, caption?: string }` |
+| `commit` | `{ sha: string, message: string, files: string[] }` |
+| `error` | `{ message: string, recoverable: boolean }` |
+| `done` | `{ runId: string, finalStatus: string }` |
+
+Сервер уважает `Last-Event-ID` для replay. Хранится последние 1000 событий на проект.
+
+## POST /projects/:slug/subscribe
+
+Подписаться на майлстоун-уведомления по проекту. Уведомления идут через Telegram-бот AgentFlow.
+
+```bash
+curl -X POST https://api.agentflow.website/projects/hermes-dispatch/subscribe \
+  -H "Cookie: af_session=..."
+```
+
+**Ответ**
+
+```json
+{ "subscribed": true }
+```
+
+## Ошибки
+
+| Код | Когда |
+|---|---|
+| `token_no_match` | Slug токена не принадлежит вызывающему |
+| `project_locked` | У токена уже есть активный проект |
+| `template_unknown` | `agentTemplate` не из списка пресетов |
+| `private_forbidden` | Стрим открыт по приватному проекту без auth |

@@ -1,0 +1,150 @@
+---
+title: "Auth"
+description: "Sign-In With Ethereum и Telegram-логин. JWT-cookie сессия."
+---
+
+AgentFlow поддерживает два механизма входа: SIWE (любой EVM-кошелёк) и Telegram. Оба ведут к одной JWT-cookie сессии.
+
+## POST /auth/nonce
+
+Запросить SIWE-nonce. Nonce связывает подписанное кошельком сообщение с одной попыткой входа и предотвращает replay.
+
+**Auth**: нет.
+
+<ParamField body="address" type="string" required>
+  EVM-адрес, который будет подписывать. В нижнем регистре с префиксом 0x.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.agentflow.website/auth/nonce \
+  -H "Content-Type: application/json" \
+  -d '{ "address": "0xabc..." }'
+```
+
+```javascript fetch
+const { nonce, message } = await fetch(
+  "https://api.agentflow.website/auth/nonce",
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ address }),
+  },
+).then((r) => r.json());
+```
+
+```python httpx
+import httpx
+
+r = httpx.post(
+    "https://api.agentflow.website/auth/nonce",
+    json={"address": address},
+)
+nonce, message = r.json()["nonce"], r.json()["message"]
+```
+</CodeGroup>
+
+**Ответ**
+
+```json
+{
+  "nonce": "h4d0...",
+  "message": "agentflow.website wants you to sign in with your Ethereum account: 0xabc...\n\nNonce: h4d0...",
+  "expiresAt": "2026-04-25T10:35:00Z"
+}
+```
+
+Nonce истекает через 5 минут. Используется один раз.
+
+## POST /auth/verify
+
+Проверить SIWE-подпись и поставить сессионную cookie.
+
+**Auth**: нет.
+
+<ParamField body="address" type="string" required>
+  Тот же адрес, что использовался в `/auth/nonce`.
+</ParamField>
+
+<ParamField body="message" type="string" required>
+  Точное SIWE-сообщение, возвращённое из `/auth/nonce`.
+</ParamField>
+
+<ParamField body="signature" type="string" required>
+  Hex-подпись из кошелька.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.agentflow.website/auth/verify \
+  -H "Content-Type: application/json" \
+  -c cookies.txt \
+  -d '{
+    "address": "0xabc...",
+    "message": "agentflow.website wants you to sign in...",
+    "signature": "0x..."
+  }'
+```
+
+```javascript fetch
+const res = await fetch("https://api.agentflow.website/auth/verify", {
+  method: "POST",
+  credentials: "include",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ address, message, signature }),
+});
+```
+</CodeGroup>
+
+**Ответ**
+
+```json
+{
+  "user": {
+    "id": "usr_01HQ...",
+    "address": "0xabc...",
+    "displayName": "0xabc..."
+  }
+}
+```
+
+Плюс `Set-Cookie: af_session=...; HttpOnly; Secure; SameSite=Lax`.
+
+## POST /auth/telegram
+
+Используется Telegram-ботом для выпуска сессии Telegram-пользователю. Публичные интеграторы напрямую не вызывают.
+
+<ParamField body="initData" type="string" required>
+  Telegram WebApp initData payload, проверенный против токена бота.
+</ParamField>
+
+**Ответ**: тот же, что и у `/auth/verify`, плюс привязанная Telegram-идентичность в `user.telegram`.
+
+## POST /auth/access-code
+
+Войти или зарегистрироваться по одноразовому коду доступа. Используется в onboarding-сценариях, обходящих кошелёк/Telegram.
+
+<ParamField body="code" type="string" required>
+  Одноразовый код доступа.
+</ParamField>
+
+## POST /auth/logout
+
+Очистить сессионную cookie. **Auth**: требуется.
+
+```bash
+curl -X POST https://api.agentflow.website/auth/logout \
+  -H "Cookie: af_session=..."
+```
+
+Возвращает `204 No Content`.
+
+## Ошибки
+
+| Код | Когда |
+|---|---|
+| `nonce_expired` | Nonce старше 5 минут |
+| `nonce_used` | Nonce уже использован |
+| `signature_invalid` | Подпись не сходится с адресом |
+| `telegram_invalid` | Хеш initData не сходится |
+| `code_invalid` | Код доступа не найден или использован |

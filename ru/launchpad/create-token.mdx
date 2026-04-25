@@ -1,0 +1,100 @@
+---
+title: "Создание токена"
+description: "Запустите токен AgentFlow за секунду. AI заполнит метаданные, вы подтвердите."
+---
+
+Создание токена — точка входа в Launchpad. Сценарий намеренно сводится к одному экрану, трём полям и AI на остальное.
+
+## Обязательные поля
+
+<ParamField path="name" type="string" required>
+  Отображаемое имя токена, например «Hermes Dispatch».
+</ParamField>
+
+<ParamField path="ticker" type="string" required>
+  Символ из 3–6 символов, например «HERMES».
+</ParamField>
+
+<ParamField path="brief" type="string">
+  Опциональное короткое описание того, что будет делать проект. AI использует его для генерации более насыщенных метаданных.
+</ParamField>
+
+## Что заполняет AI
+
+Сервис `tokens-ai-assist` генерирует:
+
+- **Длинное описание** (200–400 символов) из брифа
+- **Обложку** через image-gen (квадрат 1024px)
+- **Теги** для подсветки в маркетплейсе
+- **Дефолтный начальный supply** и параметры кривой
+
+Создатель видит превью и может отредактировать любое поле перед подтверждением.
+
+## Запрос API
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.agentflow.website/tokens \
+  -H "Content-Type: application/json" \
+  -H "Cookie: af_session=..." \
+  -d '{
+    "name": "Hermes Dispatch",
+    "ticker": "HERMES",
+    "brief": "AI dispatcher for last-mile logistics"
+  }'
+```
+
+```javascript fetch
+const res = await fetch("https://api.agentflow.website/tokens", {
+  method: "POST",
+  credentials: "include",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    name: "Hermes Dispatch",
+    ticker: "HERMES",
+    brief: "AI dispatcher for last-mile logistics",
+  }),
+});
+const token = await res.json();
+```
+
+```python httpx
+import httpx
+
+r = httpx.post(
+    "https://api.agentflow.website/tokens",
+    cookies={"af_session": "..."},
+    json={
+        "name": "Hermes Dispatch",
+        "ticker": "HERMES",
+        "brief": "AI dispatcher for last-mile logistics",
+    },
+)
+token = r.json()
+```
+</CodeGroup>
+
+## Ответ
+
+```json
+{
+  "id": "tok_01HQ...",
+  "slug": "hermes-dispatch",
+  "name": "Hermes Dispatch",
+  "ticker": "HERMES",
+  "state": "prototype",
+  "imageUrl": "https://cdn.agentflow.website/tokens/...",
+  "curve": {
+    "initialPrice": 0.0001,
+    "graduationThresholdFlow": 42000,
+    "progressToGraduation": 0
+  },
+  "createdAt": "2026-04-25T10:31:00Z"
+}
+```
+
+Токен сразу торгуется на кривой. Дальше — [привяжите проект](/ru/launchpad/attach-project).
+
+<Tip>
+  Один кошелёк может создать сколько угодно токенов. Anti-spam-комиссии нет, но токены без привязанного проекта быстро уходят вниз в поиске.
+</Tip>

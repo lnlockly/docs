@@ -1,0 +1,85 @@
+---
+title: "Обзор API"
+description: "Базовый URL, аутентификация, конвенции и обзор эндпоинтов."
+---
+
+API AgentFlow — JSON-over-HTTPS интерфейс на Hono. Им пользуются веб-приложение, Telegram-бот и интеграторы. SSE — там, где нужен real-time-стриминг.
+
+## Базовый URL
+
+```
+https://api.agentflow.website
+```
+
+Для self-hosted-развёртываний — замените на свой домен.
+
+## Аутентификация
+
+Большинство эндпоинтов требуют сессионную cookie, выданную SIWE или Telegram-логином.
+
+<Tabs>
+  <Tab title="SIWE">
+    1. `POST /auth/nonce` — получить nonce.
+    2. Подписать SIWE-сообщение в кошельке пользователя.
+    3. `POST /auth/verify` — отправить подпись; получить JWT-cookie `af_session`.
+  </Tab>
+  <Tab title="Telegram">
+    1. Пользователь нажимает `/start` в [@AIAgentFlow_bot](https://t.me/AIAgentFlow_bot).
+    2. Бот вызывает `POST /auth/telegram` с подписанным payload.
+    3. Сервер ставит cookie `af_session`.
+  </Tab>
+  <Tab title="Service-to-service">
+    Внутренние эндпоинты под `/internal/*` принимают shared-secret заголовок `X-Internal-Token`. Эти эндпоинты не для публичных интеграторов.
+  </Tab>
+</Tabs>
+
+Cookie — `HttpOnly`, `Secure`, `SameSite=Lax`, время жизни 30 дней. Шлите её на каждый запрос.
+
+Полные схемы запросов и ответов — в [Auth](/ru/api/auth).
+
+## Группы эндпоинтов
+
+<CardGroup cols={2}>
+  <Card title="Auth" icon="key" href="/ru/api/auth">
+    SIWE, Telegram-логин, logout.
+  </Card>
+  <Card title="Marketplace" icon="store" href="/ru/api/marketplace">
+    List, fetch, публикация агентов. Цены инструментов.
+  </Card>
+  <Card title="Tokens" icon="coins" href="/ru/api/tokens">
+    CRUD токенов Launchpad, держатели, сделки.
+  </Card>
+  <Card title="Projects" icon="hammer" href="/ru/api/projects">
+    Привязка, запуск, стрим, подписка.
+  </Card>
+  <Card title="FLOW Balance" icon="wallet" href="/ru/api/flow-balance">
+    Баланс, разбивка, регистр.
+  </Card>
+  <Card title="Subscriptions" icon="calendar" href="/ru/api/subscriptions">
+    Checkout, статус, отмена, выплаты.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/ru/api/webhooks">
+    Входящие callback'и провайдеров. HMAC-верификация.
+  </Card>
+</CardGroup>
+
+## Конвенции
+
+- **Content-Type**: всегда `application/json`. Multipart — только для нескольких эндпоинтов с загрузкой файлов (документировано на местах).
+- **Ошибки**: `4xx` и `5xx` возвращают `{ "error": { "code": "...", "message": "..." } }`. Коды стабильные и перечислены per эндпоинт.
+- **Пагинация**: list-эндпоинты принимают `?cursor=` и возвращают `nextCursor`. Размер страницы по умолчанию — 20, максимум — 100.
+- **Идемпотентность**: write-эндпоинты принимают опциональный заголовок `Idempotency-Key`. Повторные запросы с тем же ключом возвращают исходный результат без побочных эффектов.
+
+## Лимиты
+
+| Корзина | Лимит |
+|---|---|
+| Анонимные | 30 req / мин / IP |
+| Аутентифицированные | 240 req / мин / пользователя |
+| Внутренние | 1000 req / мин / токен |
+
+Превышение возвращает `429` с заголовком `Retry-After`.
+
+## SSE-эндпоинты
+
+Стрим-эндпоинты (стрим проекта, тики цены токена) используют `text/event-stream`. Переподключение делает стандартный EventSource API; сервер уважает `Last-Event-ID` для replay.

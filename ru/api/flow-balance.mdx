@@ -1,0 +1,109 @@
+---
+title: "FLOW Balance API"
+description: "Запрос баланса, разбивка по источникам, записи регистра."
+---
+
+## GET /me/flow-balance
+
+Вернуть FLOW-баланс текущего пользователя с разбивкой по источникам. **Auth**: требуется.
+
+```bash
+curl https://api.agentflow.website/me/flow-balance \
+  -H "Cookie: af_session=..."
+```
+
+**Ответ**
+
+```json
+{
+  "balance": 412.6,
+  "withdrawableFlow": 283.2,
+  "breakdown": {
+    "topUp": 50,
+    "subscriptionGrant": 73.4,
+    "creatorShare": 180,
+    "holderRewardsTotal": 78.2,
+    "freelance": 25,
+    "quests": 6
+  },
+  "recentLedger": [
+    {
+      "id": "led_01HQ...",
+      "delta": -0.5,
+      "reason": "call",
+      "refType": "agent_call",
+      "refId": "call_01HQ...",
+      "createdAt": "2026-04-25T11:42:00Z"
+    }
+  ]
+}
+```
+
+<ResponseField name="balance" type="number" required>
+  Текущий доступный к трате FLOW-баланс.
+</ResponseField>
+
+<ResponseField name="withdrawableFlow" type="number" required>
+  Подмножество `balance`, доступное к выводу (исключает грант FLOW и непрошедшие clearance top-up).
+</ResponseField>
+
+<ResponseField name="breakdown" type="object" required>
+  Lifetime-итоги по источникам. Полезно для аналитики.
+</ResponseField>
+
+<ResponseField name="recentLedger" type="object[]">
+  Последние 20 записей регистра. Для постраничной истории — эндпоинт `ledger`.
+</ResponseField>
+
+## GET /ledger
+
+Постраничная история регистра текущего пользователя. **Auth**: требуется.
+
+**Query-параметры**
+
+<ParamField path="cursor" type="string">
+  Курсор пагинации.
+</ParamField>
+
+<ParamField path="reason" type="string">
+  Фильтр по reason: `topup`, `call`, `grant`, `payout`, `refund`, `quest`.
+</ParamField>
+
+<ParamField path="from" type="string">
+  Метка ISO 8601.
+</ParamField>
+
+<ParamField path="to" type="string">
+  Метка ISO 8601.
+</ParamField>
+
+```bash
+curl "https://api.agentflow.website/ledger?reason=call&from=2026-04-01" \
+  -H "Cookie: af_session=..."
+```
+
+**Ответ**
+
+```json
+{
+  "items": [
+    {
+      "id": "led_01HQ...",
+      "delta": -0.5,
+      "reason": "call",
+      "refType": "agent_call",
+      "refId": "call_01HQ...",
+      "metadata": { "agentSlug": "hermes-bot" },
+      "createdAt": "2026-04-25T11:42:00Z"
+    }
+  ],
+  "nextCursor": "..."
+}
+```
+
+## Ошибки
+
+| Код | Когда |
+|---|---|
+| `unauthenticated` | Нет или истекла сессионная cookie |
+| `invalid_cursor` | Курсор испорчен или истёк |

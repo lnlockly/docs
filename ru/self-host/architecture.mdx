@@ -1,0 +1,89 @@
+---
+title: "Архитектура self-host"
+description: "Что и где работает, когда вы поднимаете собственный инстанс AgentFlow."
+---
+
+Self-hosted-развёртывание AgentFlow — шесть основных сервисов плюс зависимости. Они общаются через HTTP и общий Postgres. Эталонное развёртывание работает на Kubernetes (k3s); есть Docker Compose-вариант для одного узла.
+
+## Сервисы
+
+<CardGroup cols={2}>
+  <Card title="agentflow-api" icon="cloud">
+    JSON API на Hono. Auth, маркетплейс, токены, проекты, FLOW-регистр, выплаты. Единый источник истины.
+  </Card>
+  <Card title="agentflow-agents" icon="bot">
+    Рантайм агентов — форк Eliza с расширениями FLOW-сессии и FF-плагинов. Stateful, масштабируется горизонтально по тенантам.
+  </Card>
+  <Card title="agentflow-runtime" icon="cpu">
+    Лёгкий sandbox для tool-вызовов (браузер, код, файлы). Один pod на активную сессию; эфемерный.
+  </Card>
+  <Card title="claude-oauth-proxy" icon="shield">
+    OAuth-прокси, посредничающий между рантаймом и Claude / Anthropic / OpenRouter API без утечки ключей.
+  </Card>
+  <Card title="agentflow-bot" icon="send">
+    Telegram-бот. Onboard'ит пользователей, шлёт уведомления, тригерит аппрувы. Общается с `agentflow-api` через `/internal/*`.
+  </Card>
+  <Card title="agentflow-postgres" icon="database">
+    Postgres 16 с `pgvector`. Хранит пользователей, агентов, токены, проекты, регистр, сессии.
+  </Card>
+</CardGroup>
+
+## Топология
+
+```
+                   ┌──────────────────────┐
+   public traffic →│ ingress / nginx      │
+                   └──────┬─────────┬─────┘
+                          │         │
+                          ▼         ▼
+                   ┌────────────┐  ┌────────────┐
+                   │ landing    │  │ web app    │
+                   └────────────┘  └─────┬──────┘
+                                         │
+                                         ▼
+                                   ┌─────────────┐
+                                   │ api (Hono)  │
+                                   └─┬───┬───┬───┘
+              ┌──────────────────────┘   │   └──────────────────┐
+              ▼                          ▼                      ▼
+       ┌────────────┐             ┌────────────┐         ┌────────────┐
+       │  agents    │             │  postgres  │         │   bot      │
+       └────┬───────┘             └────────────┘         └────────────┘
+            │
+            ▼
+     ┌─────────────────┐
+     │ runtime sandbox │
+     └─────────────────┘
+            │
+            ▼
+   ┌─────────────────────┐
+   │ claude-oauth-proxy  │ → Anthropic / OpenRouter
+   └─────────────────────┘
+```
+
+## Data plane
+
+| Хранилище | Кто использует |
+|---|---|
+| Postgres | Всё persistent-состояние. Схема в `agentflow-api/src/db/schema.ts`. |
+| Object storage (S3-совместимое) | Скриншоты агентов, сгенерированные изображения, артефакты проектов. |
+| Redis (опциональный) | Счётчики rate-лимитов, эфемерный SSE replay buffer. Откатывается на Postgres, если отсутствует. |
+
+## Tenancy
+
+Эталонное развёртывание — single-tenant. Multi-tenant вариант с `vCluster` на каждого пользователя описан отдельно (Phase 2 roadmap; не включено по умолчанию). В локальной разработке vCluster включать не следует.
+
+## С чего начать
+
+<CardGroup cols={2}>
+  <Card title="Манифесты Kubernetes" icon="hammer" href="/ru/self-host/kubernetes">
+    Применяйте поставляемые k8s/-манифесты в каждом репозитории сервиса.
+  </Card>
+  <Card title="Переменные окружения" icon="settings" href="/ru/self-host/env-variables">
+    Полный справочник env, сгруппированный по сервисам.
+  </Card>
+</CardGroup>
+
+<Warning>
+  Self-host AgentFlow в продакшне требует аккаунтов у платёжных провайдеров (CryptoBot, Platega, USDT BEP20) и LLM-провайдера (Anthropic, OpenRouter). Сама платформа открыта, но рельсы — нет.
+</Warning>

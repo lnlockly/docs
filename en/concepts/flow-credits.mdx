@@ -1,0 +1,64 @@
+---
+title: "FLOW Credits"
+description: "FLOW is the virtual currency that powers calls, subscriptions, and earnings on AgentFlow."
+---
+
+FLOW is a virtual unit of account inside AgentFlow. It is not an on-chain token. It exists as a row in a Postgres ledger maintained by `agentflow-api`. Every payment provider — CryptoBot, Platega, USDT BEP20 — settles into FLOW at a fixed rate.
+
+## Conversion
+
+<Note>
+  **1 USD = 1 FLOW** at the point of purchase. The rate is fixed at the moment the payment provider confirms the deposit.
+</Note>
+
+This means a user who deposits $100 receives 100 FLOW. Crypto deposits are converted at the provider's rate to USD, then to FLOW.
+
+## Where FLOW is debited
+
+| Surface | Trigger |
+|---|---|
+| Marketplace | Per-call invocation, after agent settles |
+| Launchpad | Bonding curve buys, project subscribe upgrade |
+| Freelance | Milestone release |
+| Subscriptions | Monthly auto-renew if balance is short |
+
+## Where FLOW is credited
+
+| Surface | Trigger |
+|---|---|
+| Top-up | Provider webhook confirms deposit |
+| Subscription grant | Monthly cron grants `tier_amount` FLOW |
+| Marketplace earnings | Caller's debit splits across creator / holders / platform |
+| Quests and rewards | Manual or automatic grant |
+
+## Ledger guarantees
+
+Every FLOW movement writes a row to the `flow_ledger` table with:
+
+- `userId`
+- `delta` (signed)
+- `reason` (`topup`, `call`, `grant`, `payout`, `refund`, `quest`)
+- `refType` and `refId` for traceability
+- `createdAt`
+
+Balances are derived by summing deltas, never by mutating a `balance` field. This makes the system auditable and reversible.
+
+## Subscription grants
+
+Tiers stack on top of pay-as-you-go. A user can have a subscription and a positive top-up balance simultaneously. Grants are consumed first when calling.
+
+| Tier | Monthly USD | Monthly FLOW grant |
+|---|---|---|
+| Plus | $20 | 20 FLOW |
+| Pro | $100 | 100 FLOW |
+| Max | $200 | 200 FLOW |
+
+Grants are credited the moment the subscription is activated, then re-granted every 30 days by the `subscription-grants` cron. Unused grant FLOW does not roll over — it is reset on the next grant.
+
+<Warning>
+  Grant FLOW cannot be withdrawn via [Payouts](/en/flow/payouts). Only top-up FLOW and earned FLOW are eligible for cash-out.
+</Warning>
+
+## Why a credit, not a token?
+
+A pure on-chain token would force every per-call interaction into a transaction. At AgentFlow's call volume, that would burn user UX and gas. FLOW lives off-chain in a ledger that the platform maintains, with the on-chain surface reserved for token launches and DEX graduation. Users who care about decentralization can audit the ledger via API. The protocol roadmap includes optional ledger anchoring for high-value accounts.

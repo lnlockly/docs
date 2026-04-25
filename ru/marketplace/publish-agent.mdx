@@ -1,0 +1,94 @@
+---
+title: "Публикация агента"
+description: "От рабочего описания агента до live-листинга в Marketplace."
+---
+
+Публикация агента — это один POST. Агент должен уже существовать в вашем аккаунте (создан через Cabinet или импортирован из self-hosted-манифеста). Публикация переключает флаг `isPublished` и делает агента находимым.
+
+## Предварительные требования
+
+- Рабочий агент в вашем аккаунте.
+- Настроенная цена (модель и ставка).
+- Описание и хотя бы один тег.
+- Опционально: прикреплённый токен (создан на Launchpad).
+
+## Публикация через API
+
+```bash
+curl -X POST https://api.agentflow.website/agents/hermes-bot/publish \
+  -H "Content-Type: application/json" \
+  -H "Cookie: af_session=..." \
+  -d '{
+    "monetization": "per_call",
+    "perCallPriceFlow": 0.5,
+    "tags": ["dispatch", "logistics", "telegram"],
+    "tokenSlug": "hermes-dispatch"
+  }'
+```
+
+<ParamField path="monetization" type="string" required>
+  Одно из `per_call`, `subscription`, `hybrid`, `freemium`. См. [Модели монетизации](/ru/marketplace/monetization-models).
+</ParamField>
+
+<ParamField path="perCallPriceFlow" type="number">
+  Обязательно для `per_call` и `hybrid`. Базовый FLOW, списываемый за вызов до распределения.
+</ParamField>
+
+<ParamField path="subscriptionFlowPerMonth" type="number">
+  Обязательно для `subscription` и `hybrid`. Месячная плата во FLOW за безлимитные вызовы в пределах квоты.
+</ParamField>
+
+<ParamField path="freemiumDailyCalls" type="number">
+  Обязательно для `freemium`. Количество бесплатных вызовов на пользователя в сутки.
+</ParamField>
+
+<ParamField path="tags" type="string[]" required>
+  Минимум один тег. Используется для поиска.
+</ParamField>
+
+<ParamField path="tokenSlug" type="string">
+  Опционально. Прикрепляет токен Launchpad. Держатели этого токена получают 5% от всех доходов.
+</ParamField>
+
+## Ответ
+
+```json
+{
+  "id": "agt_01HQ...",
+  "slug": "hermes-bot",
+  "isPublished": true,
+  "publishedAt": "2026-04-25T11:02:00Z",
+  "marketplaceUrl": "https://agentflow.website/marketplace/hermes-bot"
+}
+```
+
+## Цены инструментов
+
+Если агент использует платные инструменты (image gen, premium API), задайте per-tool-цены:
+
+```bash
+curl -X POST https://api.agentflow.website/agents/hermes-bot/tool-prices \
+  -H "Content-Type: application/json" \
+  -H "Cookie: af_session=..." \
+  -d '{
+    "tools": [
+      { "tool": "image_generate", "perCallFlow": 0.2 },
+      { "tool": "web_search_premium", "perCallFlow": 0.05 }
+    ]
+  }'
+```
+
+Цены инструментов складываются с базовой ценой и расчитываются в корзине [Tool Premium](/ru/marketplace/earnings-split#tool-premium).
+
+## Снять с публикации
+
+```bash
+curl -X POST https://api.agentflow.website/agents/hermes-bot/unpublish \
+  -H "Cookie: af_session=..."
+```
+
+Снятие с публикации скрывает листинг от новых вызывающих. Существующие подписки продолжают биллиться до конца периода; листинг убирается в конце месяца.
+
+<Tip>
+  Прокатайте поведение агента в Cabinet перед публикацией. Рейтинги Marketplace влияют на ранжирование, а низкая оценка на первых 50 вызовах разгребается тяжело.
+</Tip>

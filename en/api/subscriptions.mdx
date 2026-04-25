@@ -1,0 +1,115 @@
+---
+title: "Subscriptions API"
+description: "Activate a tier, query status, manage payouts."
+---
+
+## POST /subscriptions/checkout
+
+Initiate a subscription checkout flow. **Auth**: required.
+
+<ParamField body="tier" type="string" required>
+  One of `plus`, `pro`, `max`.
+</ParamField>
+
+<ParamField body="provider" type="string" required>
+  One of `cryptobot`, `platega`, `usdt_bep20`.
+</ParamField>
+
+```bash
+curl -X POST https://api.agentflow.website/subscriptions/checkout \
+  -H "Content-Type: application/json" \
+  -H "Cookie: af_session=..." \
+  -d '{ "tier": "pro", "provider": "cryptobot" }'
+```
+
+**Response**
+
+```json
+{
+  "subscriptionId": "sub_01HQ...",
+  "tier": "pro",
+  "provider": "cryptobot",
+  "checkoutUrl": "https://t.me/CryptoBot?start=invoice-...",
+  "expiresAt": "2026-04-25T11:30:00Z"
+}
+```
+
+The `checkoutUrl` is provider-specific. Redirect the user there. Activation happens server-side once the provider's webhook confirms.
+
+## GET /me/subscription
+
+Fetch the current user's active subscription. **Auth**: required.
+
+```bash
+curl https://api.agentflow.website/me/subscription \
+  -H "Cookie: af_session=..."
+```
+
+**Response**
+
+```json
+{
+  "tier": "pro",
+  "status": "active",
+  "monthlyGrantFlow": 100,
+  "currentGrantRemainingFlow": 73.4,
+  "renewsAt": "2026-05-25T11:30:00Z",
+  "provider": "cryptobot"
+}
+```
+
+`status` values: `active`, `grace` (failed renewal, retrying), `canceled`, `none`.
+
+## POST /me/payouts/request
+
+Withdraw FLOW. See [Payouts](/en/flow/payouts) for the full flow.
+
+<ParamField body="amountFlow" type="number" required>
+  Amount in FLOW. Must be ≤ withdrawable balance.
+</ParamField>
+
+<ParamField body="rail" type="string" required>
+  `usdt_bep20`, `cryptobot`, or `manual`.
+</ParamField>
+
+<ParamField body="address" type="string">
+  Required for `usdt_bep20`.
+</ParamField>
+
+```bash
+curl -X POST https://api.agentflow.website/me/payouts/request \
+  -H "Content-Type: application/json" \
+  -H "Cookie: af_session=..." \
+  -d '{ "amountFlow": 100, "rail": "usdt_bep20", "address": "0x..." }'
+```
+
+## GET /me/payouts
+
+List the user's payouts.
+
+```bash
+curl https://api.agentflow.website/me/payouts \
+  -H "Cookie: af_session=..."
+```
+
+**Response**: array of payout objects with `id`, `amountFlow`, `feeFlow`, `rail`, `status`, `createdAt`.
+
+## GET /me/payouts/:id
+
+Single payout detail, including rail-specific tx hash if `sent` or `confirmed`.
+
+## POST /me/payouts/:id/cancel
+
+Cancel a `pending` payout and re-credit the FLOW.
+
+## Errors
+
+| Code | When |
+|---|---|
+| `tier_unknown` | Bad tier value |
+| `provider_unsupported` | Provider not enabled in this deployment |
+| `subscription_active` | New checkout while one is already active |
+| `withdraw_too_low` | Below the rail's minimum |
+| `withdraw_too_high` | Above withdrawable balance |
+| `address_required` | Missing address for on-chain rail |
+| `payout_immutable` | Cancel attempted on `sent`/`confirmed` payout |

@@ -1,0 +1,91 @@
+---
+title: "Вебхуки"
+description: "Входящие callback'и от провайдеров CryptoBot и Platega. HMAC-верификация."
+---
+
+AgentFlow потребляет вебхуки от платёжных провайдеров для подтверждения депозитов и платежей по подпискам. Хендлеры живут под `/payments/*` и `/webhooks/*` и публичны (с rate-лимитом) — они верифицируют подлинность отправителя через HMAC.
+
+Эти эндпоинты **входящие** — вы их не вызываете как интегратор. Они описаны, чтобы можно было сверить контракт и адаптировать при self-host.
+
+## POST /payments/cryptobot/webhook
+
+Принимает события инвойсов CryptoBot.
+
+**Auth**: HMAC. Провайдер подписывает тело API-токеном бота; хендлер проверяет через заголовок `crypto-bot-api-signature`.
+
+```http
+POST /payments/cryptobot/webhook
+Host: api.agentflow.website
+Content-Type: application/json
+crypto-bot-api-signature: <hex>
+
+{
+  "update_id": 12345,
+  "update_type": "invoice_paid",
+  "request_date": "2026-04-25T11:30:00Z",
+  "payload": {
+    "invoice_id": 12345,
+    "status": "paid",
+    "amount": "20.00",
+    "asset": "USDT",
+    "paid_amount": "20.00",
+    "payload": "user:usr_01HQ...|tier:pro"
+  }
+}
+```
+
+Поле `payload` ставит сам `agentflow-api` при создании инвойса; в нём закодированы цели user/subscription/topup. Хендлер декодирует, списывает соответствующее pending-намерение и зачисляет FLOW.
+
+**Ответ**: `200 OK` с пустым телом. При ошибке — `400` с причиной; провайдер ретраит.
+
+## POST /payments/platega/webhook
+
+Принимает события платежей Platega.
+
+**Auth**: HMAC-заголовок `X-Platega-Signature`, проверяется по секрету мерчанта.
+
+```http
+POST /payments/platega/webhook
+X-Platega-Signature: <hmac>
+Content-Type: application/json
+
+{
+  "merchant_order_id": "intent_01HQ...",
+  "platega_order_id": "PLG-...",
+  "status": "paid",
+  "amount": 20.00,
+  "currency": "USD",
+  "method": "card"
+}
+```
+
+`merchant_order_id` соответствует строке в `payment_intents`, созданной через `/subscriptions/checkout` или поток top-up.
+
+## POST /webhooks/platega
+
+Legacy-алиас для `/payments/platega/webhook`. Оба маршрута уведены на один хендлер.
+
+## Депозиты USDT BEP20
+
+Депозиты USDT BEP20 не используют вебхук. Сервис `bsc-poller` опрашивает настроенные адреса депозитов и записывает кредит, когда видит подтверждённый перевод. См. `agentflow-api/src/services/bsc-poller.ts`.
+
+## Идемпотентность
+
+Все хендлеры вебхуков идемпотентны по паре `(provider, externalId)`. Дубли принимаются с `200 OK`, но не порождают второго зачисления.
+
+## Внутренние эндпоинты
+
+API также экспортирует маршруты `/internal/*` для соседних сервисов (agentflow-bot, agentflow-runtime, agentflow-agents). Auth — через заголовок `X-Internal-Token` и shared-secret. Эти маршруты **не** для публичных интеграторов.
+
+| Маршрут | Используется |
+|---|---|
+| `POST /internal/users/upsert` | agentflow-bot |
+| `POST /internal/aiturns` | agentflow-runtime |
+| `POST /internal/marketplace-notifications` | agentflow-agents |
+| `POST /internal/leads` | agentflow-bot |
+
+При self-host, если добавляете соседний сервис, выпустите новый internal-токен через `services/env.ts`.
+
+<Warning>
+  Никогда не выставляйте внутренние эндпоинты в открытый интернет. Они обходят авторизацию пользователя. Используйте приватную сеть или service mesh между компонентами AgentFlow.
+</Warning>

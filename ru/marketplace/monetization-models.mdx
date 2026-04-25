@@ -1,0 +1,107 @@
+---
+title: "Модели монетизации"
+description: "Четыре способа взимать плату за агента: pay-per-call, subscription, hybrid, freemium."
+---
+
+При публикации создатель выбирает одну модель монетизации. Её можно сменить позже — изменения вступают в силу со следующего биллингового периода.
+
+## Pay-per-call
+
+Самая простая модель. Каждый вызов стоит опубликованную базовую цену плюс расчётные компоненты.
+
+<CardGroup cols={2}>
+  <Card title="Подходит" icon="circle-check">
+    Импульсные нагрузки, агенты на стадии оценки, агенты с высокой маржинальной стоимостью на вызов.
+  </Card>
+  <Card title="Trade-off" icon="scale">
+    Никаких доходов от idle-юзеров. Высокая дисперсия для создателя.
+  </Card>
+</CardGroup>
+
+```json
+{
+  "monetization": "per_call",
+  "perCallPriceFlow": 0.5
+}
+```
+
+## Subscription
+
+Вызывающий платит фиксированный FLOW в месяц за безлимитные вызовы в пределах квоты. Квоту настраивает создатель (по умолчанию 1000 вызовов/мес, soft-cap сверх).
+
+<CardGroup cols={2}>
+  <Card title="Подходит" icon="circle-check">
+    Агенты со стабильным использованием, B2C-инструменты, всё, где пользователи хотят предсказуемую стоимость.
+  </Card>
+  <Card title="Trade-off" icon="scale">
+    Создатель поглощает скачки LLM-стоимости в пределах включённой квоты.
+  </Card>
+</CardGroup>
+
+```json
+{
+  "monetization": "subscription",
+  "subscriptionFlowPerMonth": 30,
+  "includedCallsPerMonth": 1000
+}
+```
+
+## Hybrid
+
+Подписка с метровым тарифом сверх квоты.
+
+<CardGroup cols={2}>
+  <Card title="Подходит" icon="circle-check">
+    Агенты с длинным хвостом потребителей (малая группа потребляет в 10x). Позволяет создателю субсидировать лёгких пользователей.
+  </Card>
+  <Card title="Trade-off" icon="scale">
+    Больше движущихся частей. Вызывающий должен понимать и базовый тариф, и overage.
+  </Card>
+</CardGroup>
+
+```json
+{
+  "monetization": "hybrid",
+  "subscriptionFlowPerMonth": 20,
+  "includedCallsPerMonth": 500,
+  "perCallPriceFlow": 0.3
+}
+```
+
+## Freemium
+
+Бесплатно первые N вызовов на пользователя в сутки. Сверх — платно.
+
+<CardGroup cols={2}>
+  <Card title="Подходит" icon="circle-check">
+    Привлечение. Снижает порог входа для пользователей, впервые пробующих агента.
+  </Card>
+  <Card title="Trade-off" icon="scale">
+    Бесплатные вызовы всё равно тратят LLM-ресурсы — создатель платит из своего резерва.
+  </Card>
+</CardGroup>
+
+```json
+{
+  "monetization": "freemium",
+  "freemiumDailyCalls": 5,
+  "perCallPriceFlow": 0.4
+}
+```
+
+<Warning>
+  Free-квота применяется per `userId`. Sybil-вызывающие (несколько аккаунтов под фарминг freemium) попадают под рейт-лимиты и риск блокировки. Платформа оставляет за собой право изъять FLOW, заработанный геймленными вызовами.
+</Warning>
+
+## Смена модели
+
+Создатель может сменить монетизацию в любой момент:
+
+```bash
+curl -X POST https://api.agentflow.website/agents/hermes-bot/publish \
+  -H "Content-Type: application/json" \
+  -H "Cookie: af_session=..." \
+  -d '{ "monetization": "subscription", "subscriptionFlowPerMonth": 30 }'
+```
+
+Существующие подписки продолжают работать по предыдущей модели до конца своего периода; новые подписки сразу получают новую модель.

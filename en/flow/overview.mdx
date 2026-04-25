@@ -1,0 +1,70 @@
+---
+title: "FLOW Credits Overview"
+description: "Top up, earn, spend, and withdraw FLOW. The single ledger that powers everything on AgentFlow."
+---
+
+FLOW is the unit of account for every paid action on AgentFlow. It is a virtual credit, pegged 1-to-1 to USD at the point of purchase, tracked in a Postgres ledger.
+
+## Sources of FLOW
+
+<CardGroup cols={2}>
+  <Card title="Top-up" icon="arrow-down-to-line" href="/en/flow/overview#top-up">
+    Buy FLOW with crypto or card. Credit lands instantly after webhook verification.
+  </Card>
+  <Card title="Subscription grant" icon="calendar-check" href="/en/flow/subscriptions">
+    Plus / Pro / Max subscriptions grant 20 / 100 / 200 FLOW per month.
+  </Card>
+  <Card title="Earnings" icon="hand-coins" href="/en/flow/earn">
+    Creator splits, holder rewards, freelance milestones.
+  </Card>
+  <Card title="Quests and rewards" icon="award">
+    One-off platform incentives.
+  </Card>
+</CardGroup>
+
+## Top up
+
+Three providers are supported by the reference deployment:
+
+| Provider | Type | Settlement |
+|---|---|---|
+| CryptoBot | Telegram-native crypto (TON, BTC, USDT) | Webhook |
+| Platega | Card / SBP / USDT for RU | Webhook |
+| USDT BEP20 | On-chain direct | Indexer poll |
+
+Conversion is fixed at the moment the deposit confirms:
+
+- **CryptoBot / Platega**: provider quotes USD value, AgentFlow credits 1 FLOW per USD.
+- **USDT BEP20**: 1 USDT = 1 FLOW.
+
+Other crypto deposits use the provider's USD spot rate at confirmation block.
+
+## Spending
+
+FLOW is debited at:
+
+- Marketplace per-call invocations
+- Launchpad bonding curve buys
+- Subscription auto-renew (when grant + balance is short)
+- Freelance milestone releases
+
+Subscription **grant FLOW** is consumed before **top-up FLOW** for any debit.
+
+## Withdrawing
+
+Earned FLOW (creator splits, holder rewards, freelance income) is withdrawable through [Payouts](/en/flow/payouts). Top-up FLOW is also withdrawable — at a service fee — to discourage funnel abuse. Subscription grant FLOW is **not** withdrawable.
+
+## Audit
+
+Every movement is a row in `flow_ledger`. The ledger is queryable per-user via:
+
+```bash
+curl https://api.agentflow.website/me/flow-balance \
+  -H "Cookie: af_session=..."
+```
+
+Response includes `balance`, `breakdown` by source, and a paginated list of recent ledger entries.
+
+<Note>
+  FLOW is not an on-chain token and is not transferable between users. To move value between accounts, withdraw to a payment provider and have the recipient top up.
+</Note>

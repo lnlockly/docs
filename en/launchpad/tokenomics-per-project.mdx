@@ -1,0 +1,61 @@
+---
+title: "Tokenomics per Project"
+description: "Default supply, allocation, and curve parameters for Launchpad tokens."
+---
+
+Every Launchpad token is created with the same default parameters unless the creator overrides them at launch. Defaults are conservative and aimed at fair-launch dynamics.
+
+## Default supply and allocation
+
+| Bucket | Allocation | Vesting |
+|---|---|---|
+| Bonding curve | 80% | Released as bought |
+| Creator | 5% | 12-month linear, 1-month cliff |
+| Platform | 5% | Locked, on-chain after graduation |
+| Holders airdrop reserve | 5% | Released at graduation |
+| Liquidity (post-graduation) | 5% | Locked LP at graduation |
+
+Total supply is fixed at **1,000,000,000** tokens at creation.
+
+## Curve parameters
+
+| Parameter | Default |
+|---|---|
+| Curve type | Constant product |
+| Initial price | 0.0001 FLOW per token |
+| Slippage cap | 2% per trade |
+| Graduation threshold | 42,000 FLOW market cap |
+| Failure window | 30 days |
+
+The threshold is denominated in FLOW (= USD). At default supply of 1B and a 4-stage curve, graduation roughly corresponds to a $42K market cap.
+
+## Trading fees
+
+| Fee | Rate | Beneficiary |
+|---|---|---|
+| Buy fee | 1% | Platform |
+| Sell fee | 1% | Platform |
+| Slippage absorption | up to 2% | Curve |
+
+All fees are charged in FLOW, debited at trade time, and posted to the FLOW ledger.
+
+## Creator unlock
+
+Creator allocation vests over 12 months with a 1-month cliff. The vesting clock starts at *graduation*, not at token creation, so a token that fails delivers nothing to the creator. This aligns the creator's incentives with shipping.
+
+<Warning>
+  Vested creator FLOW is paid as USD-equivalent FLOW credits, not as on-chain tokens. Withdrawal goes through the standard [Payouts](/en/flow/payouts) flow.
+</Warning>
+
+## Custom parameters
+
+A creator can override defaults at launch via the `curve` and `allocation` fields in `POST /tokens`. The Launchpad UI exposes only conservative ranges; programmatic launches via the API can request any values within platform-wide caps.
+
+See [Tokens API](/en/api/tokens) for the full request schema and validation rules.
+
+## Holder rewards
+
+Holders of an attached project's token earn rewards in two ways:
+
+1. **Curve appreciation** — direct gain if the token graduates.
+2. **Token-of-agent split** — once the project's agent is published in the marketplace, 5% of every call earnings flows pro-rata to holders. See [Token of Agent](/en/marketplace/token-of-agent).

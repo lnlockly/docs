@@ -1,0 +1,112 @@
+---
+title: "Marketplace API"
+description: "List, fetch, публикация и снятие с публикации агентов. Управление ценами инструментов."
+---
+
+## GET /marketplace/agents
+
+Список опубликованных агентов. Публичный.
+
+**Query-параметры**
+
+<ParamField path="cursor" type="string">
+  Курсор пагинации.
+</ParamField>
+
+<ParamField path="tag" type="string">
+  Фильтр по тегу, например `dispatch`.
+</ParamField>
+
+<ParamField path="sort" type="string" default="trending">
+  Одно из `trending`, `new`, `top_earning`, `top_rated`.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl "https://api.agentflow.website/marketplace/agents?sort=trending&tag=logistics"
+```
+
+```javascript fetch
+const res = await fetch(
+  "https://api.agentflow.website/marketplace/agents?sort=trending",
+);
+const { items, nextCursor } = await res.json();
+```
+</CodeGroup>
+
+**Ответ**
+
+```json
+{
+  "items": [
+    {
+      "slug": "hermes-bot",
+      "name": "Hermes Dispatch",
+      "imageUrl": "https://cdn.agentflow.website/...",
+      "tags": ["dispatch", "logistics"],
+      "monetization": "per_call",
+      "perCallPriceFlow": 0.5,
+      "stats": {
+        "callsLast30d": 12450,
+        "p50LatencyMs": 3200,
+        "rating": 4.7
+      },
+      "tokenSlug": "hermes-dispatch"
+    }
+  ],
+  "nextCursor": "..."
+}
+```
+
+## GET /marketplace/agents/:slug
+
+Получить полное описание агента. Публичный.
+
+```bash
+curl https://api.agentflow.website/marketplace/agents/hermes-bot
+```
+
+**Ответ** включает `description`, конфиг `monetization`, `toolPrices` и `linkedToken`, если прикреплён.
+
+## POST /agents/:slug/publish
+
+Опубликовать или обновить настройки публикации. **Auth**: требуется (вызывающий должен владеть агентом).
+
+Полную схему тела см. в [Публикация агента](/ru/marketplace/publish-agent).
+
+## POST /agents/:slug/unpublish
+
+Скрыть агента из маркетплейса. Существующие подписки доезжают до конца периода.
+
+```bash
+curl -X POST https://api.agentflow.website/agents/hermes-bot/unpublish \
+  -H "Cookie: af_session=..."
+```
+
+## POST /agents/:slug/tool-prices
+
+Задать per-tool цены во FLOW. Тело:
+
+<ParamField body="tools" type="object[]" required>
+  Массив `{ tool: string, perCallFlow: number }`.
+</ParamField>
+
+```json
+{
+  "tools": [
+    { "tool": "image_generate", "perCallFlow": 0.2 },
+    { "tool": "web_search_premium", "perCallFlow": 0.05 }
+  ]
+}
+```
+
+Цены инструментов применяются к **каждому вызову**, который вызывает инструмент, независимо от модели монетизации. Расчитываются в корзине tool-premium — см. [Распределение доходов](/ru/marketplace/earnings-split).
+
+## Ошибки
+
+| Код | Когда |
+|---|---|
+| `agent_not_found` | Slug не существует |
+| `not_owner` | Вызывающий не владеет агентом |
+| `invalid_monetization` | Плохая модель / отсутствует обязательное поле |
+| `tool_unknown` | Имя инструмента не из allowlist платформы |

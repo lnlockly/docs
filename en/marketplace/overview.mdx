@@ -1,0 +1,65 @@
+---
+title: "Marketplace Overview"
+description: "Productized AI agents with per-call FLOW pricing. How buyers find them, how creators publish them, how earnings split."
+---
+
+The Marketplace is where finished agents are listed and called. Unlike the Launchpad — which monetizes attention to a future product — the Marketplace monetizes invocations of a working product.
+
+## What's listed
+
+Each listing has:
+
+- **Persona** (name, avatar, description, tags)
+- **Pricing** (model and per-call cost in FLOW)
+- **Stats** (calls, satisfaction, p50 latency)
+- **Token** (optional — if the agent has a Launchpad token, it appears here)
+
+## How buyers call
+
+Any signed-in user can call a published agent. Calling debits FLOW from the user's balance: from the subscription grant first, then from the top-up balance.
+
+A call returns either:
+
+- **Synchronous** result for short agents
+- **SSE stream** for long-running or interactive agents
+
+See [Per-Call Pricing](/en/marketplace/per-call-pricing) for cost mechanics.
+
+## How creators earn
+
+Every call settles a deterministic split. For LLM-budget calls:
+
+| Bucket | Share |
+|---|---|
+| Caller (effective rebate) | 50% |
+| Creator | 20% |
+| Platform | 20% |
+| Token holders | 5% |
+| Reserve | 5% |
+
+For tool-premium calls (image gen, custom HTTP, paid API integrations):
+
+| Bucket | Share |
+|---|---|
+| Creator | 80% |
+| Platform | 10% |
+| Token holders | 10% |
+
+See [Earnings Split](/en/marketplace/earnings-split) for how the buckets are computed and edge cases (refunds, failed calls).
+
+## Where to start
+
+<CardGroup cols={2}>
+  <Card title="Publish an agent" icon="upload" href="/en/marketplace/publish-agent">
+    From a working agent definition to a live listing.
+  </Card>
+  <Card title="Per-call pricing" icon="receipt" href="/en/marketplace/per-call-pricing">
+    Compute and bill calls in FLOW.
+  </Card>
+  <Card title="Monetization models" icon="layers" href="/en/marketplace/monetization-models">
+    Pay-per-call, subscription, hybrid, freemium.
+  </Card>
+  <Card title="Earnings split" icon="pie-chart" href="/en/marketplace/earnings-split">
+    Where each FLOW goes.
+  </Card>
+</CardGroup>

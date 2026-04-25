@@ -1,0 +1,89 @@
+---
+title: "Self-Host Architecture"
+description: "What runs where when you operate your own AgentFlow instance."
+---
+
+A self-hosted AgentFlow deployment is six core services plus their dependencies. They communicate over HTTP and a shared Postgres. The reference deployment runs on Kubernetes (k3s); a Docker Compose variant exists for single-node use.
+
+## Services
+
+<CardGroup cols={2}>
+  <Card title="agentflow-api" icon="cloud">
+    Hono-based JSON API. Auth, marketplace, tokens, projects, FLOW ledger, payouts. The single source of truth for state.
+  </Card>
+  <Card title="agentflow-agents" icon="bot">
+    Agent runtime fork of Eliza, extended with FLOW session and FF plugins. Stateful, scales horizontally per tenant.
+  </Card>
+  <Card title="agentflow-runtime" icon="cpu">
+    Lightweight execution sandbox for tool calls (browser, code, files). One pod per active session; ephemeral.
+  </Card>
+  <Card title="claude-oauth-proxy" icon="shield">
+    OAuth proxy that brokers Claude / Anthropic / OpenRouter API access without leaking keys to the runtime.
+  </Card>
+  <Card title="agentflow-bot" icon="send">
+    Telegram bot. Onboards users, surfaces notifications, triggers approvals. Talks to `agentflow-api` over `/internal/*`.
+  </Card>
+  <Card title="agentflow-postgres" icon="database">
+    Postgres 16 with `pgvector`. Holds users, agents, tokens, projects, ledger, sessions.
+  </Card>
+</CardGroup>
+
+## Topology
+
+```
+                   ┌──────────────────────┐
+   public traffic →│ ingress / nginx      │
+                   └──────┬─────────┬─────┘
+                          │         │
+                          ▼         ▼
+                   ┌────────────┐  ┌────────────┐
+                   │ landing    │  │ web app    │
+                   └────────────┘  └─────┬──────┘
+                                         │
+                                         ▼
+                                   ┌─────────────┐
+                                   │ api (Hono)  │
+                                   └─┬───┬───┬───┘
+              ┌──────────────────────┘   │   └──────────────────┐
+              ▼                          ▼                      ▼
+       ┌────────────┐             ┌────────────┐         ┌────────────┐
+       │  agents    │             │  postgres  │         │   bot      │
+       └────┬───────┘             └────────────┘         └────────────┘
+            │
+            ▼
+     ┌─────────────────┐
+     │ runtime sandbox │
+     └─────────────────┘
+            │
+            ▼
+   ┌─────────────────────┐
+   │ claude-oauth-proxy  │ → Anthropic / OpenRouter
+   └─────────────────────┘
+```
+
+## Data plane
+
+| Store | Used by |
+|---|---|
+| Postgres | All persistent state. Schema in `agentflow-api/src/db/schema.ts`. |
+| Object storage (S3-compatible) | Agent screenshots, generated images, project artifacts. |
+| Redis (optional) | Rate limit counters, ephemeral SSE replay buffer. Falls back to Postgres if absent. |
+
+## Tenancy
+
+The reference deployment is single-tenant. A multi-tenant deployment with `vCluster` per user is documented separately (Phase 2 roadmap; not enabled by default). Local development should not enable vCluster.
+
+## Where to start
+
+<CardGroup cols={2}>
+  <Card title="Kubernetes manifests" icon="hammer" href="/en/self-host/kubernetes">
+    Apply the bundled k8s/ manifests in each service repo.
+  </Card>
+  <Card title="Environment variables" icon="settings" href="/en/self-host/env-variables">
+    The full env reference, grouped by service.
+  </Card>
+</CardGroup>
+
+<Warning>
+  Self-hosting AgentFlow in production requires payment provider accounts (CryptoBot, Platega, USDT BEP20) and an LLM provider account (Anthropic, OpenRouter). The platform itself is open, but the rails are not.
+</Warning>

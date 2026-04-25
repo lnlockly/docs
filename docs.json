@@ -27,99 +27,303 @@
     "decoration": "gradient"
   },
   "navigation": {
-    "tabs": [
+    "languages": [
       {
-        "tab": "Documentation",
-        "groups": [
+        "language": "en",
+        "default": true,
+        "tabs": [
           {
-            "group": "Getting Started",
-            "pages": [
-              "introduction",
-              "quickstart"
+            "tab": "Documentation",
+            "groups": [
+              {
+                "group": "Getting Started",
+                "pages": [
+                  "en/introduction",
+                  "en/quickstart"
+                ]
+              },
+              {
+                "group": "Concepts",
+                "pages": [
+                  "en/concepts/three-pillars",
+                  "en/concepts/flow-credits",
+                  "en/concepts/bonding-curve",
+                  "en/concepts/live-build",
+                  "en/concepts/ai-agents"
+                ]
+              },
+              {
+                "group": "Launchpad",
+                "pages": [
+                  "en/launchpad/overview",
+                  "en/launchpad/create-token",
+                  "en/launchpad/attach-project",
+                  "en/launchpad/watch-live",
+                  "en/launchpad/tokenomics-per-project",
+                  "en/launchpad/graduation"
+                ]
+              },
+              {
+                "group": "Marketplace",
+                "pages": [
+                  "en/marketplace/overview",
+                  "en/marketplace/publish-agent",
+                  "en/marketplace/per-call-pricing",
+                  "en/marketplace/monetization-models",
+                  "en/marketplace/earnings-split",
+                  "en/marketplace/token-of-agent"
+                ]
+              },
+              {
+                "group": "FLOW Credits",
+                "pages": [
+                  "en/flow/overview",
+                  "en/flow/subscriptions",
+                  "en/flow/earn",
+                  "en/flow/payouts"
+                ]
+              },
+              {
+                "group": "Guides",
+                "pages": [
+                  "en/guides/launch-your-first-token",
+                  "en/guides/publish-your-agent",
+                  "en/guides/earn-flow-as-creator",
+                  "en/guides/build-an-app-with-flow"
+                ]
+              }
             ]
           },
           {
-            "group": "Concepts",
-            "pages": [
-              "concepts/three-pillars",
-              "concepts/flow-credits",
-              "concepts/bonding-curve",
-              "concepts/live-build",
-              "concepts/ai-agents"
+            "tab": "API Reference",
+            "groups": [
+              {
+                "group": "API",
+                "pages": [
+                  "en/api/overview",
+                  "en/api/auth",
+                  "en/api/marketplace",
+                  "en/api/tokens",
+                  "en/api/projects",
+                  "en/api/flow-balance",
+                  "en/api/subscriptions",
+                  "en/api/webhooks"
+                ]
+              }
             ]
           },
           {
-            "group": "Launchpad",
-            "pages": [
-              "launchpad/overview",
-              "launchpad/create-token",
-              "launchpad/attach-project",
-              "launchpad/watch-live",
-              "launchpad/tokenomics-per-project",
-              "launchpad/graduation"
-            ]
-          },
-          {
-            "group": "Marketplace",
-            "pages": [
-              "marketplace/overview",
-              "marketplace/publish-agent",
-              "marketplace/per-call-pricing",
-              "marketplace/monetization-models",
-              "marketplace/earnings-split",
-              "marketplace/token-of-agent"
-            ]
-          },
-          {
-            "group": "FLOW Credits",
-            "pages": [
-              "flow/overview",
-              "flow/subscriptions",
-              "flow/earn",
-              "flow/payouts"
-            ]
-          },
-          {
-            "group": "Guides",
-            "pages": [
-              "guides/launch-your-first-token",
-              "guides/publish-your-agent",
-              "guides/earn-flow-as-creator",
-              "guides/build-an-app-with-flow"
+            "tab": "Self-Host",
+            "groups": [
+              {
+                "group": "Operate Your Own Instance",
+                "pages": [
+                  "en/self-host/architecture",
+                  "en/self-host/kubernetes",
+                  "en/self-host/env-variables"
+                ]
+              }
             ]
           }
-        ]
+        ],
+        "navbar": {
+          "links": [
+            {
+              "label": "Cabinet",
+              "href": "https://agentflow.website/account"
+            },
+            {
+              "label": "Marketplace",
+              "href": "https://agentflow.website/marketplace"
+            }
+          ],
+          "primary": {
+            "type": "button",
+            "label": "Launch App",
+            "href": "https://agentflow.website"
+          }
+        },
+        "footer": {
+          "socials": {
+            "x": "https://x.com/agentflow",
+            "telegram": "https://t.me/AIAgentFlow_bot",
+            "github": "https://github.com/lnlockly/agentflow-api",
+            "discord": "https://discord.gg/agentflow"
+          },
+          "links": [
+            {
+              "header": "Product",
+              "items": [
+                { "label": "Launchpad", "href": "/en/launchpad/overview" },
+                { "label": "Marketplace", "href": "/en/marketplace/overview" },
+                { "label": "FLOW Credits", "href": "/en/flow/overview" }
+              ]
+            },
+            {
+              "header": "Developers",
+              "items": [
+                { "label": "API Reference", "href": "/en/api/overview" },
+                { "label": "Self-Host", "href": "/en/self-host/architecture" },
+                { "label": "GitHub", "href": "https://github.com/lnlockly/agentflow-api" }
+              ]
+            },
+            {
+              "header": "Resources",
+              "items": [
+                { "label": "Whitepaper", "href": "https://agentflow.website/whitepaper" },
+                { "label": "Telegram Bot", "href": "https://t.me/AIAgentFlow_bot" }
+              ]
+            }
+          ]
+        }
       },
       {
-        "tab": "API Reference",
-        "groups": [
+        "language": "ru",
+        "tabs": [
           {
-            "group": "API",
-            "pages": [
-              "api/overview",
-              "api/auth",
-              "api/marketplace",
-              "api/tokens",
-              "api/projects",
-              "api/flow-balance",
-              "api/subscriptions",
-              "api/webhooks"
+            "tab": "Документация",
+            "groups": [
+              {
+                "group": "Начало работы",
+                "pages": [
+                  "ru/introduction",
+                  "ru/quickstart"
+                ]
+              },
+              {
+                "group": "Концепции",
+                "pages": [
+                  "ru/concepts/three-pillars",
+                  "ru/concepts/flow-credits",
+                  "ru/concepts/bonding-curve",
+                  "ru/concepts/live-build",
+                  "ru/concepts/ai-agents"
+                ]
+              },
+              {
+                "group": "Launchpad",
+                "pages": [
+                  "ru/launchpad/overview",
+                  "ru/launchpad/create-token",
+                  "ru/launchpad/attach-project",
+                  "ru/launchpad/watch-live",
+                  "ru/launchpad/tokenomics-per-project",
+                  "ru/launchpad/graduation"
+                ]
+              },
+              {
+                "group": "Marketplace",
+                "pages": [
+                  "ru/marketplace/overview",
+                  "ru/marketplace/publish-agent",
+                  "ru/marketplace/per-call-pricing",
+                  "ru/marketplace/monetization-models",
+                  "ru/marketplace/earnings-split",
+                  "ru/marketplace/token-of-agent"
+                ]
+              },
+              {
+                "group": "FLOW-кредиты",
+                "pages": [
+                  "ru/flow/overview",
+                  "ru/flow/subscriptions",
+                  "ru/flow/earn",
+                  "ru/flow/payouts"
+                ]
+              },
+              {
+                "group": "Руководства",
+                "pages": [
+                  "ru/guides/launch-your-first-token",
+                  "ru/guides/publish-your-agent",
+                  "ru/guides/earn-flow-as-creator",
+                  "ru/guides/build-an-app-with-flow"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "Справочник API",
+            "groups": [
+              {
+                "group": "API",
+                "pages": [
+                  "ru/api/overview",
+                  "ru/api/auth",
+                  "ru/api/marketplace",
+                  "ru/api/tokens",
+                  "ru/api/projects",
+                  "ru/api/flow-balance",
+                  "ru/api/subscriptions",
+                  "ru/api/webhooks"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "Self-host",
+            "groups": [
+              {
+                "group": "Свой инстанс",
+                "pages": [
+                  "ru/self-host/architecture",
+                  "ru/self-host/kubernetes",
+                  "ru/self-host/env-variables"
+                ]
+              }
             ]
           }
-        ]
-      },
-      {
-        "tab": "Self-Host",
-        "groups": [
-          {
-            "group": "Operate Your Own Instance",
-            "pages": [
-              "self-host/architecture",
-              "self-host/kubernetes",
-              "self-host/env-variables"
-            ]
+        ],
+        "navbar": {
+          "links": [
+            {
+              "label": "Cabinet",
+              "href": "https://agentflow.website/account"
+            },
+            {
+              "label": "Marketplace",
+              "href": "https://agentflow.website/marketplace"
+            }
+          ],
+          "primary": {
+            "type": "button",
+            "label": "Открыть приложение",
+            "href": "https://agentflow.website"
           }
-        ]
+        },
+        "footer": {
+          "socials": {
+            "x": "https://x.com/agentflow",
+            "telegram": "https://t.me/AIAgentFlow_bot",
+            "github": "https://github.com/lnlockly/agentflow-api",
+            "discord": "https://discord.gg/agentflow"
+          },
+          "links": [
+            {
+              "header": "Продукт",
+              "items": [
+                { "label": "Launchpad", "href": "/ru/launchpad/overview" },
+                { "label": "Marketplace", "href": "/ru/marketplace/overview" },
+                { "label": "FLOW-кредиты", "href": "/ru/flow/overview" }
+              ]
+            },
+            {
+              "header": "Разработчикам",
+              "items": [
+                { "label": "Справочник API", "href": "/ru/api/overview" },
+                { "label": "Self-host", "href": "/ru/self-host/architecture" },
+                { "label": "GitHub", "href": "https://github.com/lnlockly/agentflow-api" }
+              ]
+            },
+            {
+              "header": "Ресурсы",
+              "items": [
+                { "label": "Whitepaper", "href": "https://agentflow.website/whitepaper" },
+                { "label": "Telegram-бот", "href": "https://t.me/AIAgentFlow_bot" }
+              ]
+            }
+          ]
+        }
       }
     ],
     "global": {
@@ -141,56 +345,6 @@
         }
       ]
     }
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Cabinet",
-        "href": "https://agentflow.website/account"
-      },
-      {
-        "label": "Marketplace",
-        "href": "https://agentflow.website/marketplace"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Launch App",
-      "href": "https://agentflow.website"
-    }
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/agentflow",
-      "telegram": "https://t.me/AIAgentFlow_bot",
-      "github": "https://github.com/lnlockly/agentflow-api",
-      "discord": "https://discord.gg/agentflow"
-    },
-    "links": [
-      {
-        "header": "Product",
-        "items": [
-          { "label": "Launchpad", "href": "/launchpad/overview" },
-          { "label": "Marketplace", "href": "/marketplace/overview" },
-          { "label": "FLOW Credits", "href": "/flow/overview" }
-        ]
-      },
-      {
-        "header": "Developers",
-        "items": [
-          { "label": "API Reference", "href": "/api/overview" },
-          { "label": "Self-Host", "href": "/self-host/architecture" },
-          { "label": "GitHub", "href": "https://github.com/lnlockly/agentflow-api" }
-        ]
-      },
-      {
-        "header": "Resources",
-        "items": [
-          { "label": "Whitepaper", "href": "https://agentflow.website/whitepaper" },
-          { "label": "Telegram Bot", "href": "https://t.me/AIAgentFlow_bot" }
-        ]
-      }
-    ]
   },
   "search": {
     "prompt": "Ask AgentFlow docs..."

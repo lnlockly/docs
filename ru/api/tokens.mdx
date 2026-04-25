@@ -1,0 +1,138 @@
+---
+title: "Tokens API"
+description: "Создание токенов, состояние, держатели, сделки."
+---
+
+## POST /tokens
+
+Создать новый токен Launchpad. **Auth**: требуется.
+
+<ParamField body="name" type="string" required>
+  Отображаемое имя.
+</ParamField>
+
+<ParamField body="ticker" type="string" required>
+  Символ из 3–6 символов.
+</ParamField>
+
+<ParamField body="brief" type="string">
+  Опциональное короткое описание; AI использует его для метаданных.
+</ParamField>
+
+<ParamField body="curve" type="object">
+  Опциональное переопределение параметров кривой. Иначе — дефолты платформы.
+</ParamField>
+
+<ParamField body="allocation" type="object">
+  Опциональное переопределение корзин аллокации. Ограничено общеплатформенными диапазонами.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.agentflow.website/tokens \
+  -H "Content-Type: application/json" \
+  -H "Cookie: af_session=..." \
+  -d '{
+    "name": "Hermes Dispatch",
+    "ticker": "HERMES",
+    "brief": "AI dispatcher for last-mile logistics"
+  }'
+```
+
+```javascript fetch
+const res = await fetch("https://api.agentflow.website/tokens", {
+  method: "POST",
+  credentials: "include",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ name, ticker, brief }),
+});
+```
+
+```python httpx
+import httpx
+
+r = httpx.post(
+    "https://api.agentflow.website/tokens",
+    cookies={"af_session": "..."},
+    json={"name": name, "ticker": ticker, "brief": brief},
+)
+```
+</CodeGroup>
+
+**Ответ**
+
+```json
+{
+  "id": "tok_01HQ...",
+  "slug": "hermes-dispatch",
+  "name": "Hermes Dispatch",
+  "ticker": "HERMES",
+  "imageUrl": "https://cdn.agentflow.website/...",
+  "state": "prototype",
+  "curve": {
+    "initialPrice": 0.0001,
+    "graduationThresholdFlow": 42000,
+    "progressToGraduation": 0
+  }
+}
+```
+
+## GET /tokens
+
+Список токенов. Публичный.
+
+**Query-параметры**: `cursor`, `state` (`prototype`, `graduating`, `sentient`, `failed`), `sort`.
+
+## GET /tokens/:slug
+
+Получить полное состояние токена, включая `state`, `progressToGraduation`, число держателей и последнюю цену сделки. Публичный.
+
+```json
+{
+  "slug": "hermes-dispatch",
+  "name": "Hermes Dispatch",
+  "ticker": "HERMES",
+  "state": "graduating",
+  "progressToGraduation": 0.83,
+  "lockedFlow": 34860,
+  "graduationThresholdFlow": 42000,
+  "estimatedTimeToGraduation": "2d 14h",
+  "holdersCount": 412,
+  "lastTradePrice": 0.0042
+}
+```
+
+## GET /tokens/:slug/holders
+
+Список держателей токена, постранично.
+
+```bash
+curl https://api.agentflow.website/tokens/hermes-dispatch/holders
+```
+
+**Ответ**
+
+```json
+{
+  "items": [
+    { "address": "0xabc...", "balance": 12500000, "share": 0.0125 }
+  ],
+  "nextCursor": "..."
+}
+```
+
+## POST /onchain/trades (curve buy/sell)
+
+Внутренний торговый эндпоинт через сервис чейн-индексера. Публичный клиент использует UI Cabinet, который вызывает его. Эндпоинт валидирует слиппедж и обновляет FLOW-регистр.
+
+Канонической реализации для self-host см. в `/Users/a1/Code/unimax_projects/fransh/agentflow-api/src/routes/onchain.ts`.
+
+## Ошибки
+
+| Код | Когда |
+|---|---|
+| `ticker_taken` | Тикер уже занят |
+| `invalid_ticker` | Вне разрешённого набора символов |
+| `curve_out_of_range` | Кастомная кривая вне лимитов платформы |
+| `token_not_found` | Slug не существует |
+| `state_locked` | Сделка по `failed` или `sentient` токену |

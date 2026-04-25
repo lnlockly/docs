@@ -1,0 +1,114 @@
+---
+title: "Развёртывание в Kubernetes"
+description: "Применяйте манифесты из директории k8s/ каждого сервиса и связывайте их."
+---
+
+Каждый репозиторий сервиса поставляется со своей `k8s/` директорией с kustomized-манифестами. Применяете в порядке, ставите секреты, кластер поднимается.
+
+## Предварительные требования
+
+- Kubernetes 1.27+ (k3s 1.29+ как референс).
+- Ingress-контроллер (nginx, Traefik или встроенный k3s).
+- Инстанс Postgres 16 с расширением `pgvector`. Либо bundled (`agentflow-postgres/k8s/`), либо внешний (managed RDS / Neon).
+- DNS минимум для трёх сабдоменов: `api.`, `app.` и лендинг бота (`bot.` или корень).
+- TLS через cert-manager или внешние сертификаты.
+
+## Порядок применения
+
+<Steps titleSize="h3">
+  <Step title="Namespace и секреты">
+    ```bash
+    kubectl create namespace agentflow
+    kubectl -n agentflow apply -f secrets/  # см. гайд env-variables
+    ```
+  </Step>
+  <Step title="Postgres">
+    ```bash
+    kubectl -n agentflow apply -k agentflow-postgres/k8s/
+    ```
+
+    Дождитесь Ready у StatefulSet. Накатите миграции из `agentflow-api`:
+
+    ```bash
+    kubectl -n agentflow exec deploy/agentflow-api -- npm run migrate
+    ```
+  </Step>
+  <Step title="API">
+    ```bash
+    kubectl -n agentflow apply -k agentflow-api/k8s/
+    ```
+  </Step>
+  <Step title="Claude OAuth proxy">
+    ```bash
+    kubectl -n agentflow apply -k claude-oauth-proxy/k8s/
+    ```
+  </Step>
+  <Step title="Agents и runtime">
+    ```bash
+    kubectl -n agentflow apply -k agentflow-agents/k8s/
+    kubectl -n agentflow apply -k agentflow-runtime/k8s/
+    ```
+  </Step>
+  <Step title="Бот">
+    ```bash
+    kubectl -n agentflow apply -k agentflow-bot/k8s/
+    ```
+  </Step>
+  <Step title="Ingress">
+    Настройте маршрутизацию ingress:
+
+    | Хост | Бэкенд |
+    |---|---|
+    | `api.<your-domain>` | `service/agentflow-api:3000` |
+    | `app.<your-domain>` | `service/agentflow-web:80` |
+
+    Затем направьте DNS на IP ingress.
+  </Step>
+</Steps>
+
+## Health и readiness
+
+Каждый сервис экспортирует:
+
+- `GET /health` — liveness
+- `GET /ready` — readiness
+
+Подключите к probes Kubernetes (манифесты делают это по умолчанию).
+
+## Масштабирование
+
+| Сервис | Дефолтные реплики | Драйвер скейлинга |
+|---|---|---|
+| `agentflow-api` | 2 | Скорость запросов; HPA по CPU |
+| `agentflow-agents` | 2 | Активные сессии; HPA по памяти |
+| `agentflow-runtime` | динамика | Спавнится на сессию, убивается в конце |
+| `claude-oauth-proxy` | 2 | Stateless; HPA по CPU |
+| `agentflow-bot` | 1 | Singleton — Telegram-полинг плохо мультиплексируется |
+
+## Хранилище
+
+Зарезервируйте `PersistentVolumeClaim` под Postgres. Object storage настраивается через env (`S3_ENDPOINT`, `S3_BUCKET`); эталонное развёртывание использует self-hosted MinIO в том же namespace.
+
+## Обновление
+
+Раскатывайте обновления, меняя image tag и переподавая kustomization. Миграции БД накатываются на старте `agentflow-api` под leader-election lock'ом.
+
+```bash
+kubectl -n agentflow set image deploy/agentflow-api api=registry.example.com/agentflow-api:<sha>
+kubectl -n agentflow rollout status deploy/agentflow-api
+```
+
+<Tip>
+  В продакшне пинуйте image tag на commit SHA. Избегайте `:latest`. Эталонный CI/CD-пайплайн собирает с SHA и делает `kubectl set image`.
+</Tip>
+
+## Single-node Docker Compose
+
+Для одноузлового dev-окружения каждый репозиторий поставляется с `docker-compose.yml`:
+
+```bash
+cd agentflow-api
+docker compose up -d
+```
+
+Это подходит только для личной разработки. Продакшн-развёртывания — на Kubernetes.
