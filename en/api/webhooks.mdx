@@ -1,65 +1,130 @@
 ---
 title: "Webhooks"
-description: "Outbound event subscriptions and internal service-to-service endpoints."
+description: "Outbound event subscriptions — get notified when something happens on your account."
 ---
 
-AgentFlow emits outbound webhooks for events on your account (call settled, payout confirmed, subscription grant issued) and exposes a small set of internal endpoints for sibling services. There are no inbound payment-provider webhooks — payment flows are settled on-chain via the subscription contract and the chain indexer.
+AgentFlow can POST to a URL of your choice whenever an event happens on **your** account. Subscribe via the Cabinet (**Settings → Webhooks**) or via API.
 
-## Outbound events
-
-Subscribe a URL via the Cabinet (**Settings → Webhooks**) or via API:
+## Manage subscriptions
 
 ```bash
+# Create
 curl -X POST https://api.agentflow.website/me/webhooks \
+  -H "x-api-key: af_live_…" \
   -H "Content-Type: application/json" \
-  -H "Cookie: af_session=..." \
   -d '{
     "url": "https://your-app.example/agentflow",
-    "events": ["call.settled", "payout.confirmed", "subscription.granted"]
+    "events": ["payment.received", "payout.sent", "subscription.granted"]
   }'
+
+# List
+curl https://api.agentflow.website/me/webhooks -H "x-api-key: af_live_…"
+
+# Test ping
+curl -X POST https://api.agentflow.website/me/webhooks/123/test -H "x-api-key: af_live_…"
+
+# Delete
+curl -X DELETE https://api.agentflow.website/me/webhooks/123 -H "x-api-key: af_live_…"
 ```
+
+Empty `events: []` means **subscribe to all** future event types.
+
+## Known events
+
+`GET /me/webhooks/events` returns the canonical list. As of today:
 
 | Event | Payload highlight |
 |---|---|
-| `call.settled` | `agentSlug`, `flowDebited`, `creatorShare`, `holderShare` |
-| `payout.confirmed` | `payoutId`, `txHash`, `netFlow` |
-| `subscription.granted` | `tier`, `monthlyGrantFlow`, `renewsAt` |
-| `token.graduated` | `tokenSlug`, `dexPairAddress` |
+| `project.completed` | `slug`, `artifact_url` |
+| `project.failed` | `slug`, `reason` |
+| `payment.received` | `provider`, `amount_usd`, `amount_flow` |
+| `subscription.granted` | `tier`, `amount_flow` |
+| `agent.published` | `slug`, `marketplace_meta` |
+| `flow.balance.low` | `balance`, `threshold` |
+| `payout.sent` | `payout_id`, `amount_flow`, `tx_hash` |
+| `payout.failed` | `payout_id`, `amount_flow`, `reason` |
 
-## Signing and verification
+## Envelope
 
-Each delivery includes an `X-AgentFlow-Signature` header — an HMAC-SHA256 of the raw body using your subscription secret. Reject any request whose signature does not match.
+Every delivery is JSON:
 
-```typescript
+```json
+{
+  "id": "01996e6f-…",
+  "event": "payment.received",
+  "user_id": 42,
+  "created_at": "2026-04-25T12:00:00.000Z",
+  "data": { "provider": "cryptobot", "amount_flow": "100.000000" }
+}
+```
+
+Use `id` to dedupe retries — POST is at-least-once.
+
+## Signing & verification
+
+Each delivery sends `X-AgentFlow-Signature: t=<unix>,v1=<hex>`. The signed string is `<unix>.<raw-body-json>` (Stripe-style). Reject any request whose signature doesn't match **and** any request whose timestamp is more than 5 minutes off `now`.
+
+```ts
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-function verify(rawBody: string, signature: string, secret: string) {
-  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
+export function verify(rawBody: string, header: string, secret: string): boolean {
+  const parts = Object.fromEntries(
+    header.split(",").map((p) => {
+      const i = p.indexOf("=");
+      return [p.slice(0, i), p.slice(i + 1)];
+    }),
+  ) as Record<string, string>;
+  const t = Number(parts.t);
+  const v1 = parts.v1;
+  if (!t || !v1) return false;
+  if (Math.abs(Math.floor(Date.now() / 1000) - t) > 300) return false;
+  const expected = createHmac("sha256", secret).update(`${t}.${rawBody}`).digest("hex");
   const a = Buffer.from(expected, "hex");
-  const b = Buffer.from(signature, "hex");
+  const b = Buffer.from(v1, "hex");
   return a.length === b.length && timingSafeEqual(a, b);
 }
 ```
 
+```python
+import hmac, hashlib, time
+
+def verify(raw_body: bytes, header: str, secret: str) -> bool:
+    parts = dict(p.split("=", 1) for p in header.split(","))
+    t, v1 = int(parts.get("t", 0)), parts.get("v1", "")
+    if not t or not v1: return False
+    if abs(int(time.time()) - t) > 300: return False
+    expected = hmac.new(
+        secret.encode(),
+        f"{t}.".encode() + raw_body,
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(expected, v1)
+```
+
 ## Retries
 
-Failed deliveries (non-2xx response, network error) are retried with exponential backoff: 30 s, 5 min, 30 min, 2 h, 6 h. After five failures the subscription enters `paused` state — the Cabinet surfaces a banner and you can replay events.
+Failed deliveries (non-2xx, network error) are retried up to 3 times with full-jitter exponential backoff (~1s, ~2s, ~4s). After the final failure we persist `last_error` on the row — the Cabinet surfaces it.
 
-## Idempotency
+## SDK
 
-Each delivery carries an `X-AgentFlow-Delivery` UUID. Treat handlers as idempotent on this ID — duplicate deliveries are accepted with `200 OK` but should produce no second side effect on your end.
+```ts
+import { AgentFlow } from "@agentflow/sdk";
+const af = new AgentFlow({ apiKey: process.env.AF_KEY });
 
-## Internal endpoints
+// Discover what's subscribable
+const { events } = await af.webhooks.events();
 
-The API exposes `/internal/*` routes consumed by sibling services (agentflow-bot, agentflow-runtime, agentflow-agents). Auth is via the `X-Internal-Token` header and a shared secret. These routes are **not** for public integrators.
+// Create
+const { webhook } = await af.webhooks.create({
+  url: "https://your-app.example/agentflow",
+  events: ["payment.received", "payout.sent"],
+});
+console.log("Save this secret:", webhook.secret);
 
-| Route | Used by |
-|---|---|
-| `POST /internal/users/upsert` | agentflow-bot |
-| `POST /internal/aiturns` | agentflow-runtime |
-| `POST /internal/marketplace-notifications` | agentflow-agents |
-| `POST /internal/leads` | agentflow-bot |
+// Test
+await af.webhooks.test(webhook.id);
+```
 
 <Warning>
-  Never expose internal endpoints to the public internet. They bypass user-level authorization and must run inside a private network or service mesh.
+  Each subscription has its own `secret`. Treat it like a password — leak only one and the others stay safe.
 </Warning>

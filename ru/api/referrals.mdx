@@ -1,0 +1,35 @@
+---
+title: "Рефералы"
+description: "Статистика прямых и многоуровневых приглашений + срез ledger по referral_reward."
+---
+
+API даёт те же цифры, что и вкладка «Рефералы» в кабинете. Нужна авторизация (cookie, bearer или `x-api-key`).
+
+## Эндпойнты
+
+| Метод | Путь | Возвращает |
+|---|---|---|
+| GET | `/referrals/stats` | `direct`, `total`, `by_level[]`, `earned_micro` |
+| GET | `/referrals/tree?depth=2&limit=50` | Вложенное дерево, постранично |
+| GET | `/referrals/earnings?limit=100` | Ledger с `kind = 'referral_reward'` |
+| GET | `/ledger?limit=100` | Полный FLOW-ledger пользователя |
+
+## SDK
+
+```ts
+const stats = await af.referrals.stats();
+console.log(`${stats.direct} прямых, всего ${stats.total}`);
+
+const earnings = await af.referrals.earnings({ limit: 50 });
+const totalEarned = earnings.items.reduce((s, e) => s + Number(e.amount), 0);
+
+const ledger = await af.ledger.list({ limit: 100 });
+```
+
+## Пагинация
+
+`tree` и `earnings` — cursor-based. Передавай `next_cursor` из предыдущего ответа.
+
+## Вебхуки
+
+Подпишись на `payment.received` чтобы получать `referral.reward` события — см. [Webhooks](/ru/api/webhooks).

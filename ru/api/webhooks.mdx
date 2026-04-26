@@ -1,65 +1,127 @@
 ---
 title: "Вебхуки"
-description: "Исходящие события подписок и внутренние ручки между сервисами."
+description: "Исходящие подписки на события — получи POST на свой URL, когда что-то происходит на твоём аккаунте."
 ---
 
-AgentFlow отправляет исходящие вебхуки на события вашего аккаунта (вызов рассчитан, выплата подтверждена, начислен грант подписки) и держит небольшой набор внутренних ручек для соседних сервисов. Входящих вебхуков от платёжных провайдеров нет — оплата идёт on-chain через контракт подписки и индексер блокчейна.
+AgentFlow шлёт POST на твой URL по событиям **твоего** аккаунта. Подписку можно создать через кабинет (**Настройки → Webhooks**) или через API.
 
-## Исходящие события
-
-Подпишите URL через Cabinet (**Settings → Webhooks**) или через API:
+## Управление подписками
 
 ```bash
+# Создать
 curl -X POST https://api.agentflow.website/me/webhooks \
+  -H "x-api-key: af_live_…" \
   -H "Content-Type: application/json" \
-  -H "Cookie: af_session=..." \
   -d '{
     "url": "https://your-app.example/agentflow",
-    "events": ["call.settled", "payout.confirmed", "subscription.granted"]
+    "events": ["payment.received", "payout.sent", "subscription.granted"]
   }'
+
+# Список
+curl https://api.agentflow.website/me/webhooks -H "x-api-key: af_live_…"
+
+# Тестовый ping
+curl -X POST https://api.agentflow.website/me/webhooks/123/test -H "x-api-key: af_live_…"
+
+# Удалить
+curl -X DELETE https://api.agentflow.website/me/webhooks/123 -H "x-api-key: af_live_…"
 ```
+
+Пустой `events: []` — это «подписка на все» будущие типы.
+
+## Известные события
+
+`GET /me/webhooks/events` возвращает каноничный список:
 
 | Событие | Что в payload |
 |---|---|
-| `call.settled` | `agentSlug`, `flowDebited`, `creatorShare`, `holderShare` |
-| `payout.confirmed` | `payoutId`, `txHash`, `netFlow` |
-| `subscription.granted` | `tier`, `monthlyGrantFlow`, `renewsAt` |
-| `token.graduated` | `tokenSlug`, `dexPairAddress` |
+| `project.completed` | `slug`, `artifact_url` |
+| `project.failed` | `slug`, `reason` |
+| `payment.received` | `provider`, `amount_usd`, `amount_flow` |
+| `subscription.granted` | `tier`, `amount_flow` |
+| `agent.published` | `slug`, `marketplace_meta` |
+| `flow.balance.low` | `balance`, `threshold` |
+| `payout.sent` | `payout_id`, `amount_flow`, `tx_hash` |
+| `payout.failed` | `payout_id`, `amount_flow`, `reason` |
+
+## Конверт доставки
+
+Каждая доставка — JSON:
+
+```json
+{
+  "id": "01996e6f-…",
+  "event": "payment.received",
+  "user_id": 42,
+  "created_at": "2026-04-25T12:00:00.000Z",
+  "data": { "provider": "cryptobot", "amount_flow": "100.000000" }
+}
+```
+
+Используй `id` для дедупликации — at-least-once delivery.
 
 ## Подпись и проверка
 
-К каждой доставке прикладывается заголовок `X-AgentFlow-Signature` — HMAC-SHA256 от тела запроса с вашим секретом подписки. Отклоняйте запросы с неверной подписью.
+Заголовок `X-AgentFlow-Signature: t=<unix>,v1=<hex>` (Stripe-style). Подписывается строка `<unix>.<raw-body-json>`. Отклоняй запросы с неверной подписью И запросы старше 5 минут.
 
-```typescript
+```ts
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-function verify(rawBody: string, signature: string, secret: string) {
-  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
+export function verify(rawBody: string, header: string, secret: string): boolean {
+  const parts = Object.fromEntries(
+    header.split(",").map((p) => {
+      const i = p.indexOf("=");
+      return [p.slice(0, i), p.slice(i + 1)];
+    }),
+  ) as Record<string, string>;
+  const t = Number(parts.t);
+  const v1 = parts.v1;
+  if (!t || !v1) return false;
+  if (Math.abs(Math.floor(Date.now() / 1000) - t) > 300) return false;
+  const expected = createHmac("sha256", secret).update(`${t}.${rawBody}`).digest("hex");
   const a = Buffer.from(expected, "hex");
-  const b = Buffer.from(signature, "hex");
+  const b = Buffer.from(v1, "hex");
   return a.length === b.length && timingSafeEqual(a, b);
 }
 ```
 
+```python
+import hmac, hashlib, time
+
+def verify(raw_body: bytes, header: str, secret: str) -> bool:
+    parts = dict(p.split("=", 1) for p in header.split(","))
+    t, v1 = int(parts.get("t", 0)), parts.get("v1", "")
+    if not t or not v1: return False
+    if abs(int(time.time()) - t) > 300: return False
+    expected = hmac.new(
+        secret.encode(),
+        f"{t}.".encode() + raw_body,
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(expected, v1)
+```
+
 ## Повторы
 
-Неудачные доставки (ответ не 2xx, ошибка сети) повторяются с экспоненциальной задержкой: 30 с, 5 мин, 30 мин, 2 ч, 6 ч. После пяти неудач подписка ставится в `paused` — Cabinet показывает баннер, события можно проиграть заново.
+Неудачные доставки (не 2xx, ошибка сети) повторяются до 3 раз с full-jitter exp backoff (~1с, ~2с, ~4с). После последнего фейла записывается `last_error` — кабинет это покажет.
 
-## Идемпотентность
+## SDK
 
-Каждая доставка несёт UUID `X-AgentFlow-Delivery`. Делайте обработчик идемпотентным по этому ID — дубли принимаются с `200 OK`, но не должны вызывать второй побочный эффект на вашей стороне.
+```ts
+import { AgentFlow } from "@agentflow/sdk";
+const af = new AgentFlow({ apiKey: process.env.AF_KEY });
 
-## Внутренние ручки
+const { events } = await af.webhooks.events();
 
-API экспонирует маршруты `/internal/*` для соседних сервисов (agentflow-bot, agentflow-runtime, agentflow-agents). Авторизация — через заголовок `X-Internal-Token` и общий секрет. Эти маршруты **не** для публичных интеграторов.
+const { webhook } = await af.webhooks.create({
+  url: "https://your-app.example/agentflow",
+  events: ["payment.received", "payout.sent"],
+});
+console.log("Сохрани секрет:", webhook.secret);
 
-| Маршрут | Используется |
-|---|---|
-| `POST /internal/users/upsert` | agentflow-bot |
-| `POST /internal/aiturns` | agentflow-runtime |
-| `POST /internal/marketplace-notifications` | agentflow-agents |
-| `POST /internal/leads` | agentflow-bot |
+await af.webhooks.test(webhook.id);
+```
 
 <Warning>
-  Не выставляйте внутренние ручки в открытый интернет. Они обходят проверку прав пользователя — должны жить в приватной сети или service mesh.
+  У каждой подписки свой `secret`. Считай его паролем — утечка одного не компрометирует другие.
 </Warning>

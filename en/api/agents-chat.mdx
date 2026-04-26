@@ -1,0 +1,144 @@
+---
+title: "Agents — chat"
+description: "Call any agent you own through the API. Drop-in for OpenAI-style clients, billed in $FLOW per turn."
+---
+
+This is the headline endpoint for third-party integrators. Mint an API key in the Cabinet, point any client (LangChain, your own bot, n8n, Make.com) at `POST /agents/{slug}/chat`, and you have your AgentFlow agent answering on production with the same character, plugins, and memory the cabinet uses.
+
+## Authentication
+
+Use any of:
+
+- `x-api-key: af_live_…` (recommended for service-to-service)
+- `Authorization: Bearer <jwt>` (when you already hold a session)
+- `Cookie: af_session=…` (browser flows)
+
+Mint a key:
+
+```bash
+curl -X POST https://api.agentflow.website/me/api-keys \
+  -H "Cookie: af_session=…" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "my-bot" }'
+```
+
+The response carries the raw key **once**. Save it in your secret store.
+
+## Request
+
+```http
+POST /agents/{slug}/chat
+Content-Type: application/json
+x-api-key: af_live_…
+```
+
+Two body shapes are accepted:
+
+```json
+{ "text": "What's the weather in London?" }
+```
+
+…or the OpenAI-style list (only the **last** `user` message drives the turn — Eliza tracks history server-side):
+
+```json
+{
+  "messages": [
+    { "role": "user", "content": "What's the weather in London?" }
+  ],
+  "stream": true
+}
+```
+
+## Streaming response (SSE)
+
+Default. Content-type `text/event-stream`. Each event has a `event:` name and a JSON `data:` line:
+
+| Event | Meaning |
+|---|---|
+| `status` | Heartbeat / lifecycle (`thinking`, `tool_start`, `tool_done`) |
+| `message` | Token delta from the LLM |
+| `ui_blocks` | Rendered tool result (cards, buttons, lists) |
+| `done` | Final assistant text + tool list |
+| `flow_meta` | Settled balance — `{ balance_remaining: "12.345" }` |
+
+Two **headers** are emitted up-front so non-streaming clients can inspect cost without parsing SSE:
+
+- `x-flow-balance` — caller's FLOW balance at the moment the pre-charge gate ran
+- `x-flow-precharge` — estimated charge held for this turn (default `0.5`)
+
+The settled cost ships as the final `flow_meta` event.
+
+## SDK — TypeScript
+
+```ts
+import { AgentFlow } from "@agentflow/sdk";
+
+const af = new AgentFlow({ apiKey: process.env.AGENTFLOW_API_KEY });
+
+// Buffered: easiest path
+const r = await af.agents.chat("tg-457c1d", { text: "Hi!" });
+console.log(r.content);
+console.log("Balance left:", r.flow_balance_remaining);
+
+// Streaming: token-by-token
+for await (const ev of af.agents.chatStream("tg-457c1d", { text: "Hi!" })) {
+  if (ev.event === "message") process.stdout.write(String(ev.data));
+  if (ev.event === "flow_meta") console.log("\nDone, balance:", ev.data);
+}
+```
+
+## SDK — Python (HTTP)
+
+The Python SDK ships shortly. Until then, raw HTTP works:
+
+```python
+import json, requests
+
+API = "https://api.agentflow.website"
+key = "af_live_…"
+
+# Buffered: ask the server NOT to stream by parsing line-by-line yourself.
+with requests.post(
+    f"{API}/agents/tg-457c1d/chat",
+    headers={"x-api-key": key, "content-type": "application/json"},
+    json={"text": "Hi!"},
+    stream=True,
+) as r:
+    for raw in r.iter_lines():
+        if not raw or raw.startswith(b":"):
+            continue
+        line = raw.decode("utf-8")
+        if line.startswith("event:"):
+            ev = line.split(":", 1)[1].strip()
+        elif line.startswith("data:"):
+            data = json.loads(line.split(":", 1)[1].strip() or "null")
+            if ev == "done":
+                print(data.get("text") or data.get("content"))
+```
+
+## Curl
+
+```bash
+curl -N -X POST https://api.agentflow.website/agents/tg-457c1d/chat \
+  -H "x-api-key: af_live_…" \
+  -H "content-type: application/json" \
+  -d '{"text":"Hi!"}'
+```
+
+`-N` keeps curl from buffering the SSE stream.
+
+## Errors
+
+| Status | Body | Cause |
+|---|---|---|
+| 401 | `{ error: "invalid_api_key" }` | Key not found / revoked |
+| 402 | `{ error: "insufficient_flow", balance, topup_url }` | Pre-charge gate failed |
+| 404 | `{ error: "not_found" }` | Slug wrong or not your agent |
+| 410 | `{ error: "agent_tombstoned" }` | Agent deleted |
+| 502 | `{ error: "auto_redeploy_failed" }` | Eliza session bounce failed |
+
+## Related
+
+- [API keys](/en/api/api-keys) — minting + spend caps
+- [Webhooks](/en/api/webhooks) — get notified on `flow.balance.low`
+- [Build an app with FLOW](/en/guides/build-an-app-with-flow) — full example

@@ -133,11 +133,14 @@
                   "en/api/overview",
                   "en/api/auth",
                   "en/api/api-keys",
+                  "en/api/agents-chat",
                   "en/api/marketplace",
                   "en/api/tokens",
                   "en/api/projects",
                   "en/api/flow-onchain",
                   "en/api/subscriptions",
+                  "en/api/referrals",
+                  "en/api/search",
                   "en/api/webhooks"
                 ]
               }
@@ -297,11 +300,14 @@
                   "ru/api/overview",
                   "ru/api/auth",
                   "ru/api/api-keys",
+                  "ru/api/agents-chat",
                   "ru/api/marketplace",
                   "ru/api/tokens",
                   "ru/api/projects",
                   "ru/api/flow-onchain",
                   "ru/api/subscriptions",
+                  "ru/api/referrals",
+                  "ru/api/search",
                   "ru/api/webhooks"
                 ]
               }

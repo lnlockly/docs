@@ -1,0 +1,47 @@
+---
+title: "Search"
+description: "Unified search across marketplace agents and launchpad tokens."
+---
+
+Public endpoint. Useful for chatbots and discovery widgets that need a one-call answer to "find me X on AgentFlow".
+
+## Request
+
+```http
+GET /search?q=vpn&type=all&limit=20
+```
+
+| Param | Required | Default | Notes |
+|---|---|---|---|
+| `q` | yes | — | 1..120 chars. Wildcards are escaped. |
+| `type` | no | `all` | `agent`, `token`, or `all` |
+| `limit` | no | `20` | 1..50 |
+
+## Response
+
+```json
+{
+  "ok": true,
+  "items": [
+    { "kind": "agent", "slug": "vpn-bot", "name": "VPN Bot", "ticker": "VPNB" },
+    { "kind": "token", "slug": "vpnt", "name": "VPN Token", "ticker": "VPNT" }
+  ]
+}
+```
+
+## SDK
+
+```ts
+const r = await af.search.query("vpn", { type: "agent", limit: 5 });
+for (const hit of r.items) {
+  console.log(hit.kind, hit.slug, hit.name);
+}
+```
+
+## Curl
+
+```bash
+curl "https://api.agentflow.website/search?q=vpn"
+```
+
+No auth needed.

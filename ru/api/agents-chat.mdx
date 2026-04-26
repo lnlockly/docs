@@ -1,0 +1,138 @@
+---
+title: "Агенты — чат"
+description: "Вызывай свой агент через API. OpenAI-совместимый формат, оплата в $FLOW за каждый ход."
+---
+
+Главная точка входа для третьих сторон. Сминтил API-ключ в кабинете, направил любой клиент (LangChain, бота, n8n, Make.com) на `POST /agents/{slug}/chat` — и твой агент уже отвечает в проде с тем же характером, плагинами и памятью, что и в кабинете.
+
+## Авторизация
+
+Подойдёт любой из:
+
+- `x-api-key: af_live_…` (рекомендуется для service-to-service)
+- `Authorization: Bearer <jwt>` (если уже есть сессия)
+- `Cookie: af_session=…` (браузер)
+
+Создание ключа:
+
+```bash
+curl -X POST https://api.agentflow.website/me/api-keys \
+  -H "Cookie: af_session=…" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "my-bot" }'
+```
+
+Ключ показывается в ответе **один раз**. Сохрани его сразу.
+
+## Запрос
+
+```http
+POST /agents/{slug}/chat
+Content-Type: application/json
+x-api-key: af_live_…
+```
+
+Принимаются две формы тела:
+
+```json
+{ "text": "Какая погода в Лондоне?" }
+```
+
+…или OpenAI-style список (используется только **последнее** сообщение с `role: "user"` — Eliza ведёт историю на сервере):
+
+```json
+{
+  "messages": [
+    { "role": "user", "content": "Какая погода в Лондоне?" }
+  ],
+  "stream": true
+}
+```
+
+## Стриминг (SSE)
+
+По умолчанию. Content-type `text/event-stream`. Каждое событие имеет имя в `event:` и JSON в `data:`:
+
+| Событие | Что значит |
+|---|---|
+| `status` | Heartbeat / жизненный цикл (`thinking`, `tool_start`, `tool_done`) |
+| `message` | Дельта токенов от LLM |
+| `ui_blocks` | Отрендеренный результат тула (карточки, кнопки, списки) |
+| `done` | Итоговый текст + список вызванных тулов |
+| `flow_meta` | Расчёт после settle — `{ balance_remaining: "12.345" }` |
+
+В заголовках ответа сразу доступны:
+
+- `x-flow-balance` — баланс FLOW на момент pre-charge
+- `x-flow-precharge` — сколько списано в hold (по умолчанию `0.5`)
+
+Финальная стоимость приходит последним событием `flow_meta`.
+
+## SDK — TypeScript
+
+```ts
+import { AgentFlow } from "@agentflow/sdk";
+
+const af = new AgentFlow({ apiKey: process.env.AGENTFLOW_API_KEY });
+
+// Простой ответ
+const r = await af.agents.chat("tg-457c1d", { text: "Привет!" });
+console.log(r.content);
+console.log("Баланс:", r.flow_balance_remaining);
+
+// Стрим по токенам
+for await (const ev of af.agents.chatStream("tg-457c1d", { text: "Привет!" })) {
+  if (ev.event === "message") process.stdout.write(String(ev.data));
+  if (ev.event === "flow_meta") console.log("\n", ev.data);
+}
+```
+
+## Python
+
+```python
+import json, requests
+API = "https://api.agentflow.website"
+key = "af_live_…"
+
+with requests.post(
+    f"{API}/agents/tg-457c1d/chat",
+    headers={"x-api-key": key, "content-type": "application/json"},
+    json={"text": "Привет!"},
+    stream=True,
+) as r:
+    for raw in r.iter_lines():
+        if not raw or raw.startswith(b":"):
+            continue
+        line = raw.decode("utf-8")
+        if line.startswith("event:"):
+            ev = line.split(":", 1)[1].strip()
+        elif line.startswith("data:"):
+            data = json.loads(line.split(":", 1)[1].strip() or "null")
+            if ev == "done":
+                print(data.get("text") or data.get("content"))
+```
+
+## Curl
+
+```bash
+curl -N -X POST https://api.agentflow.website/agents/tg-457c1d/chat \
+  -H "x-api-key: af_live_…" \
+  -H "content-type: application/json" \
+  -d '{"text":"Привет!"}'
+```
+
+## Ошибки
+
+| Статус | Тело | Причина |
+|---|---|---|
+| 401 | `{ error: "invalid_api_key" }` | Ключ невалидный / отозван |
+| 402 | `{ error: "insufficient_flow", balance, topup_url }` | Pre-charge gate не пропустил |
+| 404 | `{ error: "not_found" }` | Слуг не найден / не твой агент |
+| 410 | `{ error: "agent_tombstoned" }` | Агент удалён |
+| 502 | `{ error: "auto_redeploy_failed" }` | Eliza-сессия не поднялась |
+
+## Смотри также
+
+- [API keys](/ru/api/api-keys) — выпуск + лимиты
+- [Webhooks](/ru/api/webhooks) — уведомления `flow.balance.low`
+- [Build an app with FLOW](/ru/guides/build-an-app-with-flow) — полный пример

@@ -1,0 +1,47 @@
+---
+title: "Поиск"
+description: "Единый поиск по агентам маркетплейса и токенам лаунчпада."
+---
+
+Публичный эндпойнт. Удобно для чат-ботов и виджетов открытия.
+
+## Запрос
+
+```http
+GET /search?q=vpn&type=all&limit=20
+```
+
+| Параметр | Обязателен | Дефолт | Заметки |
+|---|---|---|---|
+| `q` | да | — | 1..120 символов, метасимволы экранируются |
+| `type` | нет | `all` | `agent`, `token`, `all` |
+| `limit` | нет | `20` | 1..50 |
+
+## Ответ
+
+```json
+{
+  "ok": true,
+  "items": [
+    { "kind": "agent", "slug": "vpn-bot", "name": "VPN Bot", "ticker": "VPNB" },
+    { "kind": "token", "slug": "vpnt",    "name": "VPN Token", "ticker": "VPNT" }
+  ]
+}
+```
+
+## SDK
+
+```ts
+const r = await af.search.query("vpn", { type: "agent", limit: 5 });
+for (const hit of r.items) {
+  console.log(hit.kind, hit.slug, hit.name);
+}
+```
+
+## Curl
+
+```bash
+curl "https://api.agentflow.website/search?q=vpn"
+```
+
+Авторизация не нужна.

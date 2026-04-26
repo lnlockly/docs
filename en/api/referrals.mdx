@@ -1,0 +1,36 @@
+---
+title: "Referrals"
+description: "Direct + multi-level invite stats and the referral_reward ledger slice."
+---
+
+Programmatic access to the same numbers your Cabinet's Referrals tab shows. Auth required (cookie, bearer, or `x-api-key`).
+
+## Endpoints
+
+| Method | Path | Returns |
+|---|---|---|
+| GET | `/referrals/stats` | `direct`, `total`, `by_level[]`, `earned_micro` |
+| GET | `/referrals/tree?depth=2&limit=50` | Nested invite tree, paged |
+| GET | `/referrals/earnings?limit=100` | Ledger entries with `kind = 'referral_reward'` |
+| GET | `/ledger?limit=100` | Full FLOW ledger for the user |
+
+## SDK
+
+```ts
+const stats = await af.referrals.stats();
+console.log(`${stats.direct} direct, ${stats.total} total invites`);
+
+const earnings = await af.referrals.earnings({ limit: 50 });
+const totalEarned = earnings.items.reduce((s, e) => s + Number(e.amount), 0);
+
+// Full ledger
+const ledger = await af.ledger.list({ limit: 100 });
+```
+
+## Pagination
+
+`tree` and `earnings` use opaque cursor pagination — pass back `next_cursor` from the previous response.
+
+## Webhooks
+
+Subscribe to the `referral.reward` slice via the `payment.received` event family — see [Webhooks](/en/api/webhooks).

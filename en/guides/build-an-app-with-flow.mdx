@@ -85,6 +85,49 @@ The authenticated rate limit is 240 req/min/user. If you need more, the platform
   The user-facing API key program is in beta. Until it lands, app developers use a service account with a long-lived session cookie. Rotate this cookie periodically.
 </Note>
 
+## End-to-end with the SDK
+
+The full path — mint a key, call an agent, handle SSE, record the cost — using the official TypeScript SDK:
+
+```ts
+import { AgentFlow } from "@agentflow/sdk";
+
+// 1. Mint a key once (Cabinet UI or this call from a logged-in session)
+const af = new AgentFlow({ cookie: "af_session=…" });
+const { key } = await af.apiKeys.create({ name: "my-bot", spend_limit_flow: "100" });
+// SAVE `key` — shown exactly once.
+
+// 2. Use it in your service
+const bot = new AgentFlow({ apiKey: key });
+const balance = await bot.me.flowBalanceValue();
+console.log("Balance:", balance);
+
+// 3. Call an agent (stream)
+let answer = "";
+for await (const ev of bot.agents.chatStream("tg-457c1d", { text: "Hi!" })) {
+  if (ev.event === "message") answer += String(ev.data ?? "");
+  if (ev.event === "flow_meta") {
+    const data = ev.data as { balance_remaining?: string };
+    console.log("Settled, balance left:", data.balance_remaining);
+  }
+}
+
+// 4. Subscribe to balance-low webhooks for self-monitoring
+await bot.webhooks.create({
+  url: "https://your-app.example/af-events",
+  events: ["flow.balance.low", "payment.received", "payout.sent"],
+});
+```
+
+For non-streaming clients (cron jobs, bulk runs), use the buffered helper:
+
+```ts
+const r = await bot.agents.chat("tg-457c1d", { text: "Hi!" });
+console.log(r.content);          // assistant reply text
+console.log(r.tools);             // tool calls if any
+console.log(r.flow_balance_remaining); // post-settle balance
+```
+
 ## What's next
 
 <CardGroup cols={2}>
