@@ -1,0 +1,161 @@
+---
+title: "API-ключи"
+description: "Долгоживущие bearer-токены для server-to-server вызовов AgentFlow."
+---
+
+API-ключи позволяют серверному коду, CI-раннерам и ботам обращаться к AgentFlow без SIWE-входа на каждом холодном старте. Каждый ключ привязан к одному пользователю и наследует его права.
+
+Ключ показывается создателю **ровно один раз**. Сервер хранит только HMAC-SHA256 хеш — если потеряли значение, придётся выпустить новый.
+
+## Когда использовать API-ключ
+
+- Бэкенд, которому нужно выписывать чеки, читать marketplace-агентов или дёргать `/me/*` от имени владельца.
+- CI-пайплайн, публикующий агентов или гоняющий стрим-тесты сборки.
+- Долгоживущий бот, для которого поддерживать SIWE-сессию неудобно.
+
+Для браузерных сценариев предпочтительнее cookie `af_session` от [`POST /auth/verify`](/ru/api/auth) — она HttpOnly и обновляется автоматически.
+
+## Формат ключа
+
+```
+af_live_a1b2c3d4e5f6...   (префикс из 8 символов + 64 hex-символа)
+```
+
+Первые 12 символов (`af_live_a1b2`) хранятся в открытом виде, чтобы списки и аудит могли идентифицировать ключ, не раскрывая секрет.
+
+## UI кабинета
+
+В [кабинете](https://agentflow.website/account/api-keys) есть вкладка "API Keys" для создания, просмотра и отзыва ключей. Скоро: ограничение по scopes, allowlist по IP.
+
+## Создание через API
+
+<ParamField body="name" type="string" required>
+  Человекочитаемое имя, до 64 символов. Видит только владелец.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.agentflow.website/me/api-keys \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $JWT" \
+  -d '{ "name": "ci-runner" }'
+```
+
+```typescript SDK
+import { AgentFlow } from '@agentflow/sdk';
+
+const af = new AgentFlow({ bearerToken: process.env.AF_JWT });
+const created = await af.apiKeys.create({ name: 'ci-runner' });
+console.log(created.key); // СОХРАНИТЕ — показывается один раз
+```
+</CodeGroup>
+
+**Ответ**
+
+```json
+{
+  "ok": true,
+  "id": 42,
+  "name": "ci-runner",
+  "prefix": "af_live_a1b2",
+  "key": "af_live_a1b2c3d4e5f60718293a4b5c...полные 64 hex...",
+  "created_at": "2026-04-25T10:00:00Z",
+  "warning": "Save this key now — it will not be shown again."
+}
+```
+
+## Использование
+
+Отправляйте сырой ключ в заголовке `x-api-key`. Middleware проверяет `x-api-key` **раньше**, чем падает на `Authorization: Bearer` и cookie:
+
+<CodeGroup>
+```bash curl
+curl https://api.agentflow.website/me \
+  -H "x-api-key: af_live_a1b2c3d4..."
+```
+
+```typescript SDK
+import { AgentFlow } from '@agentflow/sdk';
+
+const af = new AgentFlow({ apiKey: process.env.AGENTFLOW_API_KEY });
+const me = await af.me.get();
+```
+</CodeGroup>
+
+`last_used_at` обновляется best-effort — это подсказка о свежести, не гарантия.
+
+## Список ключей
+
+<CodeGroup>
+```bash curl
+curl https://api.agentflow.website/me/api-keys \
+  -H "Authorization: Bearer $JWT"
+```
+
+```typescript SDK
+const { items } = await af.apiKeys.list();
+```
+</CodeGroup>
+
+```json
+{
+  "ok": true,
+  "items": [
+    {
+      "id": 42,
+      "name": "ci-runner",
+      "prefix": "af_live_a1b2",
+      "created_at": "2026-04-25T10:00:00Z",
+      "last_used_at": "2026-04-25T10:05:14Z"
+    }
+  ]
+}
+```
+
+Хеш **никогда** не возвращается. В UI безопасно показывать только prefix.
+
+## Отзыв
+
+Мягкое удаление — необратимо. Строка остаётся для аудита, но ключ перестаёт авторизовать.
+
+<CodeGroup>
+```bash curl
+curl -X DELETE https://api.agentflow.website/me/api-keys/42 \
+  -H "Authorization: Bearer $JWT"
+```
+
+```typescript SDK
+await af.apiKeys.revoke(42);
+```
+</CodeGroup>
+
+Отозванный ключ в `x-api-key` возвращает `401 invalid_api_key`.
+
+## Ротация без даунтайма
+
+1. `apiKeys.create({ name: "ci-runner-v2" })` — сохраните новое значение в секрет-менеджер.
+2. Раскатите деплой, читающий новую переменную.
+3. После завершения раскатки — отзовите старый ключ.
+
+Оба ключа могут жить одновременно, пока идёт деплой.
+
+## Чеклист безопасности
+
+- Храните сырой ключ в env-переменных, секрет-менеджерах (1Password, AWS Secrets Manager, doppler) или зашифрованных CI-переменных. **Никогда** не коммитьте в git.
+- Относитесь к ключу как к паролю. Если человек ушёл из команды или раннер скомпрометирован — сразу отзывайте и ротируйте.
+- В браузере используйте cookie-сессию; `apiKey` имеет смысл только в доверенном серверном контексте.
+- HMAC-секрет на сервере (`API_KEY_HMAC_SECRET`) ротируется независимо от JWT-секрета. В проде имеет смысл задать его явно.
+
+## Scopes
+
+Сейчас каждый ключ наследует полные права владельца. Колонка `scopes` уже есть в схеме, и `create` будет принимать массив `scopes` в будущей версии (план — Q3 2026). До тех пор считайте ключи полнодоступными и берегите их соответственно.
+
+## Ошибки
+
+| Status | Code | Когда |
+|---|---|---|
+| 400 | `invalid_body` | `name` отсутствует или длиннее 64 символов |
+| 400 | `bad_id` | `:id` не положительное целое |
+| 401 | `invalid_api_key` | Заголовок битый, неизвестен или отозван |
+| 401 | `unauthenticated` | Учётка не предоставлена |
+| 404 | `not_found` | Отзыв ключа, который не существует или не ваш |

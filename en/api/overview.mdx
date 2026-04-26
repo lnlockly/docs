@@ -28,6 +28,11 @@ Most endpoints require a session cookie issued by SIWE or Telegram login.
     2. Bot calls `POST /auth/telegram` with signed payload.
     3. Server issues `af_session` cookie.
   </Tab>
+  <Tab title="API Key">
+    1. Create a key in the [cabinet](https://agentflow.website/account/api-keys) or via `POST /me/api-keys`.
+    2. Send it as `x-api-key: af_live_...` on every request — no cookie needed.
+    See [API Keys](/en/api/api-keys) for the full lifecycle.
+  </Tab>
   <Tab title="Service-to-service">
     Internal endpoints under `/internal/*` accept a shared secret header `X-Internal-Token`. These endpoints are not for public integrators.
   </Tab>
@@ -42,6 +47,9 @@ See [Auth](/en/api/auth) for the full request/response schemas.
 <CardGroup cols={2}>
   <Card title="Auth" icon="key" href="/en/api/auth">
     SIWE, Telegram login, logout.
+  </Card>
+  <Card title="API Keys" icon="lock" href="/en/api/api-keys">
+    Long-lived bearer tokens for server-to-server calls.
   </Card>
   <Card title="Marketplace" icon="store" href="/en/api/marketplace">
     List, fetch, publish agents. Tool prices.

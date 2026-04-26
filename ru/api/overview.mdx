@@ -28,6 +28,11 @@ https://api.agentflow.website
     2. Бот вызывает `POST /auth/telegram` с подписанным payload.
     3. Сервер выдаёт куку `af_session`.
   </Tab>
+  <Tab title="API Key">
+    1. Создайте ключ в [кабинете](https://agentflow.website/account/api-keys) или через `POST /me/api-keys`.
+    2. Отправляйте его как `x-api-key: af_live_...` в каждом запросе — cookie не нужна.
+    Полный жизненный цикл — [API-ключи](/ru/api/api-keys).
+  </Tab>
   <Tab title="Service-to-service">
     Внутренние эндпоинты под `/internal/*` принимают шейред-сикрет в хедере `X-Internal-Token`. Эти эндпоинты не для публичных интеграторов.
   </Tab>
@@ -42,6 +47,9 @@ https://api.agentflow.website
 <CardGroup cols={2}>
   <Card title="Auth" icon="key" href="/ru/api/auth">
     SIWE, Telegram-логин, logout.
+  </Card>
+  <Card title="API-ключи" icon="lock" href="/ru/api/api-keys">
+    Долгоживущие bearer-токены для server-to-server вызовов.
   </Card>
   <Card title="Marketplace" icon="store" href="/ru/api/marketplace">
     Список, fetch, публикация агентов. Цены инструментов.

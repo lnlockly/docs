@@ -5,6 +5,8 @@ description: "Sign-In With Ethereum and Telegram login. JWT cookie session."
 
 AgentFlow supports two login mechanisms: SIWE (any EVM wallet) and Telegram. Both result in the same JWT cookie session.
 
+For server-side and CI use cases where a cookie session is awkward, see [API Keys](/en/api/api-keys) — long-lived bearer tokens minted from `/me/api-keys`.
+
 ## POST /auth/nonce
 
 Request a SIWE nonce. The nonce binds the wallet's signed message to a single login attempt and prevents replay.

@@ -132,6 +132,7 @@
                 "pages": [
                   "en/api/overview",
                   "en/api/auth",
+                  "en/api/api-keys",
                   "en/api/marketplace",
                   "en/api/tokens",
                   "en/api/projects",
@@ -295,6 +296,7 @@
                 "pages": [
                   "ru/api/overview",
                   "ru/api/auth",
+                  "ru/api/api-keys",
                   "ru/api/marketplace",
                   "ru/api/tokens",
                   "ru/api/projects",

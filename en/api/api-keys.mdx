@@ -1,0 +1,161 @@
+---
+title: "API Keys"
+description: "Long-lived bearer tokens for service-to-service AgentFlow calls."
+---
+
+API keys let server-side code, CI runners, and bots talk to AgentFlow without going through SIWE on every cold start. Each key is bound to one user and inherits that user's permissions.
+
+A key is shown to its creator **exactly once**. The server stores only an HMAC-SHA256 hash; if you lose the value you'll need to mint a new one.
+
+## When to use an API key
+
+- A backend that needs to mint receipts, list marketplace agents, or call `/me/*` on behalf of its owner.
+- A CI pipeline that publishes agents or runs build-stream tests.
+- A long-lived bot script where keeping a SIWE session alive is awkward.
+
+For browser flows, prefer the `af_session` cookie issued by [`POST /auth/verify`](/en/api/auth) — it is HttpOnly and rotates automatically.
+
+## Key format
+
+```
+af_live_a1b2c3d4e5f6...   (8-char namespace + 64 hex chars)
+```
+
+The first 12 characters (`af_live_a1b2`) are stored in the clear so that lists and audit views can identify a key without revealing the secret.
+
+## Cabinet UI
+
+A self-service "API Keys" tab in the [cabinet](https://agentflow.website/account/api-keys) lets you create, list, and revoke keys. Coming soon: scoped keys, IP allowlists.
+
+## Mint via API
+
+<ParamField body="name" type="string" required>
+  Human label, max 64 characters. Shown only to the owner.
+</ParamField>
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.agentflow.website/me/api-keys \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $JWT" \
+  -d '{ "name": "ci-runner" }'
+```
+
+```typescript SDK
+import { AgentFlow } from '@agentflow/sdk';
+
+const af = new AgentFlow({ bearerToken: process.env.AF_JWT });
+const created = await af.apiKeys.create({ name: 'ci-runner' });
+console.log(created.key); // SAVE THIS — shown only once
+```
+</CodeGroup>
+
+**Response**
+
+```json
+{
+  "ok": true,
+  "id": 42,
+  "name": "ci-runner",
+  "prefix": "af_live_a1b2",
+  "key": "af_live_a1b2c3d4e5f60718293a4b5c...full 64 hex...",
+  "created_at": "2026-04-25T10:00:00Z",
+  "warning": "Save this key now — it will not be shown again."
+}
+```
+
+## Use a key
+
+Send the raw key in the `x-api-key` header. The middleware checks `x-api-key` **before** falling back to `Authorization: Bearer` and the cookie:
+
+<CodeGroup>
+```bash curl
+curl https://api.agentflow.website/me \
+  -H "x-api-key: af_live_a1b2c3d4..."
+```
+
+```typescript SDK
+import { AgentFlow } from '@agentflow/sdk';
+
+const af = new AgentFlow({ apiKey: process.env.AGENTFLOW_API_KEY });
+const me = await af.me.get();
+```
+</CodeGroup>
+
+`last_used_at` on the key row is updated best-effort; treat it as a freshness hint, not a guarantee.
+
+## List your keys
+
+<CodeGroup>
+```bash curl
+curl https://api.agentflow.website/me/api-keys \
+  -H "Authorization: Bearer $JWT"
+```
+
+```typescript SDK
+const { items } = await af.apiKeys.list();
+```
+</CodeGroup>
+
+```json
+{
+  "ok": true,
+  "items": [
+    {
+      "id": 42,
+      "name": "ci-runner",
+      "prefix": "af_live_a1b2",
+      "created_at": "2026-04-25T10:00:00Z",
+      "last_used_at": "2026-04-25T10:05:14Z"
+    }
+  ]
+}
+```
+
+The hash is **never** returned. Only the prefix is safe to render.
+
+## Revoke
+
+Soft-delete is irreversible. The row stays for audit but the key stops resolving on auth.
+
+<CodeGroup>
+```bash curl
+curl -X DELETE https://api.agentflow.website/me/api-keys/42 \
+  -H "Authorization: Bearer $JWT"
+```
+
+```typescript SDK
+await af.apiKeys.revoke(42);
+```
+</CodeGroup>
+
+A revoked key sent in `x-api-key` returns `401 invalid_api_key`.
+
+## Rotate without downtime
+
+1. `apiKeys.create({ name: "ci-runner-v2" })` — save the new value into your secret manager.
+2. Roll out the deployment that reads the new variable.
+3. Revoke the old key once the rollout is complete.
+
+Both keys can co-exist while you redeploy.
+
+## Security checklist
+
+- Store the raw key in environment variables, secret managers (1Password, AWS Secrets Manager, doppler), or sealed CI variables. **Never** commit it to git.
+- Treat the key like a password. If a teammate leaves or a runner is compromised, revoke immediately and rotate.
+- Prefer the cookie session for browser code — `apiKey` only makes sense in trusted server-side contexts.
+- The HMAC secret on the server is rotatable independently of the JWT secret via `API_KEY_HMAC_SECRET`. Operators should set this explicitly in production.
+
+## Scopes
+
+Today every key inherits the full scope of its owner. The `scopes` column exists in the schema and the create response will accept a `scopes` array on a future revision (planned Q3 2026); until then, treat keys as full-access — protect them accordingly.
+
+## Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_body` | `name` missing or longer than 64 chars |
+| 400 | `bad_id` | `:id` is not a positive integer |
+| 401 | `invalid_api_key` | Header value malformed, unknown, or revoked |
+| 401 | `unauthenticated` | No credential at all |
+| 404 | `not_found` | Revoking a key that doesn't exist or isn't yours |
