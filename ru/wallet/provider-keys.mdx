@@ -11,7 +11,6 @@ description: "Подключи свои ключи Anthropic / OpenAI / ElevenLa
 
 - Не платить наценку FLOW, если у тебя уже есть платный аккаунт Anthropic / OpenAI.
 - Использовать провайдеров, которых у нас нет (Runway, Pika, Cartesia, Brave Search, …).
-- Подключить корпоративную квоту (Anthropic Max, OpenAI Pro Team) к своим агентам.
 - Попробовать новую модель в день релиза — не дожидаясь, пока мы её добавим в каталог.
 
 ## Как защищены ключи
@@ -24,7 +23,7 @@ description: "Подключи свои ключи Anthropic / OpenAI / ElevenLa
 
 <Steps titleSize="h3">
   <Step title="Выбери категорию">
-    [/account/keys](https://app.agentflow.website/account/keys) показывает шесть карточек:
+    [/account/keys](https://app.agentflow.website/account/keys) показывает пять карточек — по одной на возможность ИИ:
 
     | Категория      | Примеры |
     |----------------|----------|
@@ -33,12 +32,13 @@ description: "Подключи свои ключи Anthropic / OpenAI / ElevenLa
     | Video          | Runway, Luma, Pika, Fal Video |
     | Audio          | ElevenLabs, OpenAI TTS, Cartesia |
     | Research       | Perplexity, Tavily, Serper, Brave, Exa |
-    | OAuth Cloud    | Google Cloud (полноценный OAuth), Anthropic Max и OpenAI Pro (скоро) |
+
+    Отдельной категории «OAuth» больше нет — OAuth, если он поддерживается, это просто альтернативный способ авторизации у конкретного провайдера (см. Anthropic ниже).
   </Step>
   <Step title="Выбери провайдера">
     Внутри каждой карточки — список провайдеров. Бери того, в чьей панели у тебя уже есть ключ.
 
-    Для OAuth-провайдеров (сейчас это только Google Cloud) шага «вставь ключ» не будет — мастер перенаправит тебя на страницу согласия провайдера и сохранит access + refresh tokens автоматически.
+    Большинство провайдеров принимают только вставленный API key. У **Anthropic** в каталоге заявлен путь OAuth для пользователей Claude Pro / Max, но публичного OAuth-эндпоинта Anthropic пока не публикует — клик по _Continue with Claude OAuth_ возвращает `oauth_not_available` («OAuth Max — coming soon»). Используй API key из [Anthropic Console](https://platform.claude.com).
   </Step>
   <Step title="Вставь ключ, назови, сохрани">
     Поле **label** (опционально) помогает пометить ключ (например `prod`, `personal`, `client-x`). Кабинет показывает label везде — пригодится, если у тебя несколько ключей одного провайдера.
@@ -112,5 +112,5 @@ await af.providerKeys.revoke(items[0]!.id);
 ## Что делать, если
 
 - **Test вернул 401** — ключ неверный или просрочен. Перепаст из панели провайдера.
-- **OAuth говорит `gcp_oauth_not_configured`** — на этом окружении не задан platform OAuth client. Self-hosted пользователям нужно выставить переменные `GCP_OAUTH_CLIENT_ID` / `GCP_OAUTH_CLIENT_SECRET`.
+- **`/oauth/anthropic/start` отвечает 501 `oauth_not_available`** — это ожидаемо. Публичного OAuth у Anthropic сейчас нет; Pro/Max OAuth работает только для своих первичных клиентов (например Claude Code). Используй API key с [platform.claude.com](https://platform.claude.com).
 - **Агент всё равно использует платформенный Anthropic** — категория ключа должна совпадать с тем, что нужно агенту. Агент с `@elizaos/plugin-openai` не подхватит ключ Anthropic. Либо добавь ключ OpenAI, либо смени плагин в настройках агента.

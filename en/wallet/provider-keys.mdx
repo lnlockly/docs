@@ -11,7 +11,6 @@ AgentFlow agents call third-party AI providers under the hood — Anthropic for 
 
 - Skip the FLOW mark-up if you already have a paid Anthropic / OpenAI account.
 - Use providers we don't host (Runway, Pika, Cartesia, Brave Search, …).
-- Bring an enterprise quota (Anthropic Max, OpenAI Pro Team) into your agents.
 - Test a new model the day it ships, not when we add it to the platform catalog.
 
 ## How keys are protected
@@ -24,7 +23,7 @@ AgentFlow agents call third-party AI providers under the hood — Anthropic for 
 
 <Steps titleSize="h3">
   <Step title="Pick a category">
-    [/account/keys](https://app.agentflow.website/account/keys) shows six tiles:
+    [/account/keys](https://app.agentflow.website/account/keys) shows five tiles, one per AI capability:
 
     | Category       | Examples |
     |----------------|----------|
@@ -33,12 +32,13 @@ AgentFlow agents call third-party AI providers under the hood — Anthropic for 
     | Video          | Runway, Luma, Pika, Fal Video |
     | Audio          | ElevenLabs, OpenAI TTS, Cartesia |
     | Research       | Perplexity, Tavily, Serper, Brave, Exa |
-    | OAuth Cloud    | Google Cloud (real OAuth), Anthropic Max & OpenAI Pro (coming) |
+
+    There is no separate "OAuth" category — OAuth, where supported, is just another auth method on a specific provider (see Anthropic below).
   </Step>
   <Step title="Pick a provider">
     Each tile expands into provider cards. Pick the one whose dashboard you already have a key in.
 
-    For OAuth providers (currently only Google Cloud) you'll skip the paste step — the wizard redirects you to the provider's consent page and stores the access + refresh tokens automatically.
+    Most providers accept only a pasted API key. **Anthropic** advertises an OAuth path for Claude Pro / Max users, but Anthropic has not yet published a public OAuth flow — clicking _Continue with Claude OAuth_ surfaces a `oauth_not_available` notice ("OAuth Max — coming soon"). Use an API key from the [Anthropic Console](https://platform.claude.com) for now.
   </Step>
   <Step title="Paste the key, name it, save">
     Optional **label** lets you tag a key (e.g. `prod`, `personal`, `client-x`). The cabinet shows the label everywhere — useful when you're juggling several keys per provider.
@@ -112,5 +112,5 @@ await af.providerKeys.revoke(items[0]!.id);
 ## Troubleshooting
 
 - **Test returned 401** — the key is wrong or expired. Re-paste from the provider dashboard.
-- **OAuth flow says `gcp_oauth_not_configured`** — the platform OAuth client isn't set up on this deployment. Self-hosted users need to set `GCP_OAUTH_CLIENT_ID` / `GCP_OAUTH_CLIENT_SECRET` env vars.
+- **`/oauth/anthropic/start` returns 501 `oauth_not_available`** — expected. Anthropic does not currently expose a public OAuth flow; the Pro/Max OAuth route is reserved for Anthropic's own first-party clients (e.g. Claude Code). Use an API key from [platform.claude.com](https://platform.claude.com) instead.
 - **Agent still uses platform Anthropic** — your key category must match the agent's needs. An agent that picks `@elizaos/plugin-openai` won't use your Anthropic key. Either add an OpenAI key or swap the plugin in agent settings.
