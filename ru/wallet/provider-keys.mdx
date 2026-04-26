@@ -1,0 +1,116 @@
+---
+title: "Свои ключи провайдеров (BYOK)"
+description: "Подключи свои ключи Anthropic / OpenAI / ElevenLabs / Stability / Perplexity — агенты будут использовать их автоматически и платить тебе у провайдера напрямую."
+---
+
+Агенты AgentFlow под капотом обращаются к сторонним провайдерам ИИ — Anthropic для Claude, OpenAI для GPT-4o и DALL-E, ElevenLabs для голоса, Stability для картинок, Perplexity для поиска, и так далее. По умолчанию они используют платформенные кредиты, оплачиваемые в $FLOW.
+
+**Bring Your Own Key** (BYOK) — режим, в котором ты добавляешь свои ключи в кабинет и агенты используют именно их. Ты платишь провайдеру напрямую по его оптовому тарифу; AgentFlow считает только время оркестрации, а не токены.
+
+## Зачем это нужно
+
+- Не платить наценку FLOW, если у тебя уже есть платный аккаунт Anthropic / OpenAI.
+- Использовать провайдеров, которых у нас нет (Runway, Pika, Cartesia, Brave Search, …).
+- Подключить корпоративную квоту (Anthropic Max, OpenAI Pro Team) к своим агентам.
+- Попробовать новую модель в день релиза — не дожидаясь, пока мы её добавим в каталог.
+
+## Как защищены ключи
+
+- Плейнтекст шифруется **AES-256-GCM** до записи в базу. Мастер-ключ — `AGENTS_MASTER_KEY`, ротируется отдельно от JWT secret.
+- Кабинет видит только маскированный префикс (первые 8 символов + `***`).
+- Отзыв — soft delete: строка остаётся в аудите, но рантайм перестаёт её выдавать.
+
+## Добавить ключ (3 шага мастера)
+
+<Steps titleSize="h3">
+  <Step title="Выбери категорию">
+    [/account/keys](https://app.agentflow.website/account/keys) показывает шесть карточек:
+
+    | Категория      | Примеры |
+    |----------------|----------|
+    | LLM            | Anthropic, OpenAI, OpenRouter, Groq |
+    | Image          | DALL·E, Stability, Fal, Replicate |
+    | Video          | Runway, Luma, Pika, Fal Video |
+    | Audio          | ElevenLabs, OpenAI TTS, Cartesia |
+    | Research       | Perplexity, Tavily, Serper, Brave, Exa |
+    | OAuth Cloud    | Google Cloud (полноценный OAuth), Anthropic Max и OpenAI Pro (скоро) |
+  </Step>
+  <Step title="Выбери провайдера">
+    Внутри каждой карточки — список провайдеров. Бери того, в чьей панели у тебя уже есть ключ.
+
+    Для OAuth-провайдеров (сейчас это только Google Cloud) шага «вставь ключ» не будет — мастер перенаправит тебя на страницу согласия провайдера и сохранит access + refresh tokens автоматически.
+  </Step>
+  <Step title="Вставь ключ, назови, сохрани">
+    Поле **label** (опционально) помогает пометить ключ (например `prod`, `personal`, `client-x`). Кабинет показывает label везде — пригодится, если у тебя несколько ключей одного провайдера.
+
+    Мастер делает запрос на `testUrl` провайдера с заголовком `Authorization: Bearer <key>` (или `x-api-key` для Anthropic) и показывает зелёную плашку, если получил 2xx. У некоторых провайдеров (Pika, Cartesia) дешёвого test-эндпоинта нет — этот шаг тогда пропускается.
+  </Step>
+</Steps>
+
+## Ротация
+
+Можно держать несколько ключей одного провайдера. Рантайм при каждом вызове берёт тот, у которого **`rotation_priority` минимальный**. Двигай порядок стрелочками в строке:
+
+- 0 = максимальный приоритет (по умолчанию у новых ключей)
+- больше = fallback
+
+Если приоритетный ключ сломался, рантайм сейчас откатывается к платформенному умолчанию. Полноценный fallback по нескольким ключам появится в следующей итерации; пока самая чистая схема — один ключ на провайдера с приоритетом 0.
+
+## Скоро — аренда ключей
+
+Колонка **Rentable** — задел под будущий маркетплейс. Идея: ты ставишь свою неиспользуемую квоту Anthropic в стейк, платформа маршрутизирует чужие вызовы через твой ключ, ты получаешь FLOW, AgentFlow забирает комиссию. Чек-бокс пока выключен; схема в БД уже есть — выкатим без миграции.
+
+## Примеры API
+
+<CodeGroup>
+```bash curl
+# Список активных ключей
+curl -s "$BASE/me/provider-keys" \
+  -H "Authorization: Bearer $JWT"
+
+# Добавить ключ Anthropic
+curl -s "$BASE/me/provider-keys" \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $JWT" \
+  -d '{"category":"llm","provider":"anthropic","auth_type":"api_key","label":"main","value":"sk-ant-…"}'
+
+# Проверить ключ
+curl -s -X POST "$BASE/me/provider-keys/42/test" \
+  -H "Authorization: Bearer $JWT"
+
+# Отозвать
+curl -s -X DELETE "$BASE/me/provider-keys/42" \
+  -H "Authorization: Bearer $JWT"
+```
+
+```typescript SDK
+import { AgentFlow } from '@agentflow/sdk';
+
+const af = new AgentFlow({ apiKey: process.env.AF_API_KEY });
+
+// Список
+const { items } = await af.providerKeys.list();
+
+// Добавить
+await af.providerKeys.add({
+  category: 'llm',
+  provider: 'anthropic',
+  auth_type: 'api_key',
+  label: 'main',
+  value: process.env.ANTHROPIC_API_KEY!,
+});
+
+// Проверить самый свежий
+await af.providerKeys.test(items[0]!.id);
+
+// Отозвать, когда не нужен
+await af.providerKeys.revoke(items[0]!.id);
+```
+</CodeGroup>
+
+## Что делать, если
+
+- **Test вернул 401** — ключ неверный или просрочен. Перепаст из панели провайдера.
+- **OAuth говорит `gcp_oauth_not_configured`** — на этом окружении не задан platform OAuth client. Self-hosted пользователям нужно выставить переменные `GCP_OAUTH_CLIENT_ID` / `GCP_OAUTH_CLIENT_SECRET`.
+- **Агент всё равно использует платформенный Anthropic** — категория ключа должна совпадать с тем, что нужно агенту. Агент с `@elizaos/plugin-openai` не подхватит ключ Anthropic. Либо добавь ключ OpenAI, либо смени плагин в настройках агента.

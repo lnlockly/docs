@@ -58,7 +58,8 @@
                 "pages": [
                   "en/wallet/setup",
                   "en/wallet/buy-flow",
-                  "en/wallet/connect"
+                  "en/wallet/connect",
+                  "en/wallet/provider-keys"
                 ]
               },
               {
@@ -225,7 +226,8 @@
                 "pages": [
                   "ru/wallet/setup",
                   "ru/wallet/buy-flow",
-                  "ru/wallet/connect"
+                  "ru/wallet/connect",
+                  "ru/wallet/provider-keys"
                 ]
               },
               {

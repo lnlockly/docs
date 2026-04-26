@@ -1,0 +1,116 @@
+---
+title: "Provider Keys (BYOK)"
+description: "Bring your own LLM, image, video, audio and search keys. Agents use them automatically — you pay providers directly."
+---
+
+AgentFlow agents call third-party AI providers under the hood — Anthropic for Claude, OpenAI for GPT-4o and DALL-E, ElevenLabs for voice, Stability for images, Perplexity for research, and so on. By default they use platform-hosted credits priced in $FLOW.
+
+**Bring Your Own Key** (BYOK) lets you stash your own API keys in the cabinet and have agents use those instead. You pay the upstream provider directly at their wholesale price; AgentFlow only meters orchestration time, not tokens.
+
+## What's it for?
+
+- Skip the FLOW mark-up if you already have a paid Anthropic / OpenAI account.
+- Use providers we don't host (Runway, Pika, Cartesia, Brave Search, …).
+- Bring an enterprise quota (Anthropic Max, OpenAI Pro Team) into your agents.
+- Test a new model the day it ships, not when we add it to the platform catalog.
+
+## How keys are protected
+
+- Plaintext keys are sealed with **AES-256-GCM** before they hit the database. The master key lives in `AGENTS_MASTER_KEY` (rotated separately from JWT secrets).
+- The cabinet only ever sees the masked prefix (first 8 chars + `***`).
+- Revoking a key is a soft delete — the row stays for audit but the agent runtime stops handing it out.
+
+## Add a key (3-step wizard)
+
+<Steps titleSize="h3">
+  <Step title="Pick a category">
+    [/account/keys](https://app.agentflow.website/account/keys) shows six tiles:
+
+    | Category       | Examples |
+    |----------------|----------|
+    | LLM            | Anthropic, OpenAI, OpenRouter, Groq |
+    | Image          | DALL·E, Stability, Fal, Replicate |
+    | Video          | Runway, Luma, Pika, Fal Video |
+    | Audio          | ElevenLabs, OpenAI TTS, Cartesia |
+    | Research       | Perplexity, Tavily, Serper, Brave, Exa |
+    | OAuth Cloud    | Google Cloud (real OAuth), Anthropic Max & OpenAI Pro (coming) |
+  </Step>
+  <Step title="Pick a provider">
+    Each tile expands into provider cards. Pick the one whose dashboard you already have a key in.
+
+    For OAuth providers (currently only Google Cloud) you'll skip the paste step — the wizard redirects you to the provider's consent page and stores the access + refresh tokens automatically.
+  </Step>
+  <Step title="Paste the key, name it, save">
+    Optional **label** lets you tag a key (e.g. `prod`, `personal`, `client-x`). The cabinet shows the label everywhere — useful when you're juggling several keys per provider.
+
+    The wizard hits the provider's `testUrl` with `Authorization: Bearer <key>` (or `x-api-key` for Anthropic) and shows a green pill if it returned 2xx. Catalog entries without a cheap test endpoint (Pika, Cartesia) skip this step.
+  </Step>
+</Steps>
+
+## Rotation
+
+You can stash multiple keys per provider. The runtime picks the one with the **lowest `rotation_priority`** for every tool call. Use the up/down arrows in the row to reorder:
+
+- Priority 0 = most preferred (default for new keys)
+- Higher = fallback
+
+If the preferred key fails, the runtime currently retries with the platform default — full multi-key fallback ships in a later release. For now, keeping a single high-priority key per provider is the cleanest setup.
+
+## Coming soon — rentability
+
+The **Rentable** column is a placeholder for an upcoming marketplace flow. Idea: stake your unused Anthropic quota at $X per million tokens, the platform routes other users' calls through your key, you earn FLOW, AgentFlow takes a slice. The toggle is disabled today; the schema's already there so we can ship without a migration.
+
+## API examples
+
+<CodeGroup>
+```bash curl
+# List active keys
+curl -s "$BASE/me/provider-keys" \
+  -H "Authorization: Bearer $JWT"
+
+# Add an Anthropic key
+curl -s "$BASE/me/provider-keys" \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $JWT" \
+  -d '{"category":"llm","provider":"anthropic","auth_type":"api_key","label":"main","value":"sk-ant-…"}'
+
+# Test a key
+curl -s -X POST "$BASE/me/provider-keys/42/test" \
+  -H "Authorization: Bearer $JWT"
+
+# Revoke
+curl -s -X DELETE "$BASE/me/provider-keys/42" \
+  -H "Authorization: Bearer $JWT"
+```
+
+```typescript SDK
+import { AgentFlow } from '@agentflow/sdk';
+
+const af = new AgentFlow({ apiKey: process.env.AF_API_KEY });
+
+// List
+const { items } = await af.providerKeys.list();
+
+// Add
+await af.providerKeys.add({
+  category: 'llm',
+  provider: 'anthropic',
+  auth_type: 'api_key',
+  label: 'main',
+  value: process.env.ANTHROPIC_API_KEY!,
+});
+
+// Test the most-recent key
+await af.providerKeys.test(items[0]!.id);
+
+// Revoke when done
+await af.providerKeys.revoke(items[0]!.id);
+```
+</CodeGroup>
+
+## Troubleshooting
+
+- **Test returned 401** — the key is wrong or expired. Re-paste from the provider dashboard.
+- **OAuth flow says `gcp_oauth_not_configured`** — the platform OAuth client isn't set up on this deployment. Self-hosted users need to set `GCP_OAUTH_CLIENT_ID` / `GCP_OAUTH_CLIENT_SECRET` env vars.
+- **Agent still uses platform Anthropic** — your key category must match the agent's needs. An agent that picks `@elizaos/plugin-openai` won't use your Anthropic key. Either add an OpenAI key or swap the plugin in agent settings.
