@@ -1,11 +1,19 @@
 ---
 title: "API Keys"
-description: "Long-lived bearer tokens for service-to-service AgentFlow calls."
+description: "Long-lived bearer tokens with per-key rate limits, FLOW spend caps, and usage analytics."
 ---
 
-API keys let server-side code, CI runners, and bots talk to AgentFlow without going through SIWE on every cold start. Each key is bound to one user and inherits that user's permissions.
+API keys let you call AgentFlow from servers, CI runners, scripts, and webhook integrations without juggling SIWE / Telegram sessions. They sit alongside cookies and JWTs as a third auth path — same routes, same permissions, just a different header.
 
-A key is shown to its creator **exactly once**. The server stores only an HMAC-SHA256 hash; if you lose the value you'll need to mint a new one.
+Each key carries its own metering: a requests-per-minute cap, an optional FLOW spend cap per period (day / week / month / forever), and a usage log every call lands in. Think of it as the OpenRouter Activity page — same shape, FLOW instead of USD.
+
+## Wire format
+
+Keys are 72 characters: `af_live_` followed by 64 hex chars (32 bytes of CSPRNG randomness, 256 bits of entropy). The server stores only an HMAC-SHA256 hash plus a 12-character display prefix; the raw value is shown to you exactly once.
+
+```
+af_live_3f9a82b1c4e6d77a5b2c1d8e6f4a3b9c2d1e8f7a6b5c4d3e2f1a09b8c7d6e5f
+```
 
 ## When to use an API key
 
@@ -13,24 +21,26 @@ A key is shown to its creator **exactly once**. The server stores only an HMAC-S
 - A CI pipeline that publishes agents or runs build-stream tests.
 - A long-lived bot script where keeping a SIWE session alive is awkward.
 
-For browser flows, prefer the `af_session` cookie issued by [`POST /auth/verify`](/en/api/auth) — it is HttpOnly and rotates automatically.
+For browser flows prefer the `af_session` cookie issued by [`POST /auth/verify`](/en/api/auth) — it is HttpOnly and rotates automatically.
 
-## Key format
+## POST /me/api-keys — mint a key
 
-```
-af_live_a1b2c3d4e5f6...   (8-char namespace + 64 hex chars)
-```
-
-The first 12 characters (`af_live_a1b2`) are stored in the clear so that lists and audit views can identify a key without revealing the secret.
-
-## Cabinet UI
-
-A self-service "API Keys" tab in the [cabinet](https://agentflow.website/account/api-keys) lets you create, list, and revoke keys. Coming soon: scoped keys, IP allowlists.
-
-## Mint via API
+**Auth**: cookie / bearer / x-api-key.
 
 <ParamField body="name" type="string" required>
-  Human label, max 64 characters. Shown only to the owner.
+  Human label, 1–64 chars. Surface it in your secret manager so future-you knows what this key is for.
+</ParamField>
+
+<ParamField body="rate_limit_rpm" type="integer">
+  Per-key requests-per-minute cap. Default 60. Set 0 to disable the cap.
+</ParamField>
+
+<ParamField body="spend_limit_flow" type="string | number">
+  Optional FLOW spend cap per period. Decimal string preferred (`"100.5"`); numbers are accepted but lose precision past 6 decimals. Omit for no cap.
+</ParamField>
+
+<ParamField body="spend_period" type="string">
+  Period bucket — `day`, `week`, `month`, or `forever`. Default `month`.
 </ParamField>
 
 <CodeGroup>
@@ -38,64 +48,45 @@ A self-service "API Keys" tab in the [cabinet](https://agentflow.website/account
 curl -X POST https://api.agentflow.website/me/api-keys \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $JWT" \
-  -d '{ "name": "ci-runner" }'
+  -d '{
+    "name": "ci-runner",
+    "rate_limit_rpm": 120,
+    "spend_limit_flow": "50",
+    "spend_period": "month"
+  }'
 ```
 
 ```typescript SDK
-import { AgentFlow } from '@agentflow/sdk';
+import { AgentFlow } from 'agentflow-sdk';
+const af = new AgentFlow({ bearerToken: process.env.AF_JWT! });
 
-const af = new AgentFlow({ bearerToken: process.env.AF_JWT });
-const created = await af.apiKeys.create({ name: 'ci-runner' });
-console.log(created.key); // SAVE THIS — shown only once
+const k = await af.apiKeys.create({
+  name: 'ci-runner',
+  rate_limit_rpm: 120,
+  spend_limit_flow: '50',
+  spend_period: 'month',
+});
+console.log(k.key); // af_live_… — save NOW, never shown again
 ```
 </CodeGroup>
 
-**Response**
+The response shape:
 
 ```json
 {
   "ok": true,
   "id": 42,
   "name": "ci-runner",
-  "prefix": "af_live_a1b2",
-  "key": "af_live_a1b2c3d4e5f60718293a4b5c...full 64 hex...",
-  "created_at": "2026-04-25T10:00:00Z",
+  "prefix": "af_live_3f9a",
+  "key": "af_live_3f9a82b1...",
+  "created_at": "2026-04-26T10:00:00Z",
   "warning": "Save this key now — it will not be shown again."
 }
 ```
 
-## Use a key
+## GET /me/api-keys — list active keys
 
-Send the raw key in the `x-api-key` header. The middleware checks `x-api-key` **before** falling back to `Authorization: Bearer` and the cookie:
-
-<CodeGroup>
-```bash curl
-curl https://api.agentflow.website/me \
-  -H "x-api-key: af_live_a1b2c3d4..."
-```
-
-```typescript SDK
-import { AgentFlow } from '@agentflow/sdk';
-
-const af = new AgentFlow({ apiKey: process.env.AGENTFLOW_API_KEY });
-const me = await af.me.get();
-```
-</CodeGroup>
-
-`last_used_at` on the key row is updated best-effort; treat it as a freshness hint, not a guarantee.
-
-## List your keys
-
-<CodeGroup>
-```bash curl
-curl https://api.agentflow.website/me/api-keys \
-  -H "Authorization: Bearer $JWT"
-```
-
-```typescript SDK
-const { items } = await af.apiKeys.list();
-```
-</CodeGroup>
+Returns the public shape only — never the hash. Each entry carries its current limits and `spend_period_used` so you can render budget bars without a second roundtrip.
 
 ```json
 {
@@ -104,58 +95,169 @@ const { items } = await af.apiKeys.list();
     {
       "id": 42,
       "name": "ci-runner",
-      "prefix": "af_live_a1b2",
-      "created_at": "2026-04-25T10:00:00Z",
-      "last_used_at": "2026-04-25T10:05:14Z"
+      "prefix": "af_live_3f9a",
+      "created_at": "2026-04-26T10:00:00Z",
+      "last_used_at": "2026-04-26T11:23:45Z",
+      "rate_limit_rpm": 120,
+      "spend_limit_flow": "50.000000",
+      "spend_period": "month",
+      "spend_period_used": "12.345678",
+      "spend_period_start": "2026-04-01T00:00:00Z"
     }
   ]
 }
 ```
 
-The hash is **never** returned. Only the prefix is safe to render.
+## PATCH /me/api-keys/:id — adjust limits
 
-## Revoke
+All fields are optional — pass only what you want to change. Switching `spend_period` resets `spend_period_used` to 0 so the new bucket starts clean.
 
-Soft-delete is irreversible. The row stays for audit but the key stops resolving on auth.
-
-<CodeGroup>
-```bash curl
-curl -X DELETE https://api.agentflow.website/me/api-keys/42 \
-  -H "Authorization: Bearer $JWT"
+```bash
+curl -X PATCH https://api.agentflow.website/me/api-keys/42 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $JWT" \
+  -d '{ "rate_limit_rpm": 200, "spend_limit_flow": "100" }'
 ```
 
-```typescript SDK
-await af.apiKeys.revoke(42);
+## DELETE /me/api-keys/:id — revoke
+
+Soft-revoke. The row sticks around so audit trails (who created what, when it was last used) stay readable. Subsequent `x-api-key` calls with the revoked key get 401.
+
+## Authentication header
+
+Send the raw key in `x-api-key` on any request that would otherwise need a session:
+
+```bash
+curl https://api.agentflow.website/me \
+  -H "x-api-key: af_live_3f9a82b1..."
 ```
-</CodeGroup>
 
-A revoked key sent in `x-api-key` returns `401 invalid_api_key`.
+Mixing creds is rejected — if you set both `x-api-key` and `Authorization: Bearer …` and the key is invalid, you get 401 even though the bearer would have worked.
 
-## Rotate without downtime
+## Rate limits
 
-1. `apiKeys.create({ name: "ci-runner-v2" })` — save the new value into your secret manager.
-2. Roll out the deployment that reads the new variable.
-3. Revoke the old key once the rollout is complete.
+Every successful response carries:
 
-Both keys can co-exist while you redeploy.
+| Header | Meaning |
+|--------|---------|
+| `X-RateLimit-Limit` | Configured `rate_limit_rpm`. |
+| `X-RateLimit-Remaining` | Slots left in the current 1-minute window. |
+| `X-RateLimit-Reset` | ISO timestamp when the window rolls over. |
+
+When you exceed the cap the API returns **429 Too Many Requests** with a `Retry-After` header (in seconds) and:
+
+```json
+{ "ok": false, "error": "rate_limited", "retry_after_ms": 23456 }
+```
+
+The window is sliding 1-minute per key, evaluated atomically against the `api_keys` row so it stays consistent across all replicas. Setting `rate_limit_rpm` to `0` disables the cap entirely.
+
+## Spend limits
+
+Each request also gets:
+
+| Header | Meaning |
+|--------|---------|
+| `X-FLOW-Cost` | FLOW charged for *this* request (0 for free endpoints). |
+| `X-FLOW-Period-Used` | FLOW spent so far in the current period. |
+| `X-FLOW-Period-Limit` | Configured cap (omitted if no cap). |
+| `X-FLOW-Period-Reset` | ISO timestamp when the period rolls over. |
+
+Once `period_used >= spend_limit_flow` the API returns **402 Payment Required**:
+
+```json
+{
+  "ok": false,
+  "error": "spend_limit_exceeded",
+  "period_used": "100.000000",
+  "period_limit": "100.000000",
+  "period_reset_at": "2026-05-01T00:00:00Z"
+}
+```
+
+Recovery is automatic at the next period boundary — no manual reset, no cron. The accumulator clears lazily on the next billed call after the period rolls over.
+
+## Usage tracking
+
+Every authenticated request that arrived with `x-api-key` is logged to `api_key_usage` (best-effort, non-blocking). Two endpoints expose the data:
+
+### GET /me/api-keys/:id/usage?since=day|week|month|all
+
+```json
+{
+  "ok": true,
+  "since": "2026-03-26T10:00:00Z",
+  "total_calls": 1421,
+  "total_flow_charged": "12.345678",
+  "total_tokens_in": 123456,
+  "total_tokens_out": 78901,
+  "by_endpoint": [
+    { "endpoint": "POST /agents/foo/call", "count": 800, "flow": "10.000000" },
+    { "endpoint": "GET /me", "count": 600, "flow": "0.000000" }
+  ],
+  "by_model": [
+    { "model": "claude-haiku-4-5", "count": 800, "tokens_in": 100000, "tokens_out": 60000, "flow": "10.000000" }
+  ],
+  "by_day": [
+    { "day": "2026-04-25", "count": 120, "flow": "1.234567" }
+  ]
+}
+```
+
+### GET /me/api-keys/:id/recent?limit=50
+
+```json
+{
+  "ok": true,
+  "items": [
+    {
+      "id": 9001,
+      "endpoint": "GET /me",
+      "status_code": 200,
+      "flow_charged": "0",
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "model": null,
+      "duration_ms": 24,
+      "created_at": "2026-04-26T11:23:45Z"
+    }
+  ]
+}
+```
+
+`limit` is clamped to 200. Use it for live tail / debug. The cabinet's API key detail page polls this for the "Recent calls" panel.
+
+## Comparison with OpenRouter
+
+If you're already running on OpenRouter, the model is identical — only the unit changes:
+
+| OpenRouter | AgentFlow |
+|------------|-----------|
+| API key with USD spend cap | API key with FLOW spend cap |
+| Activity page (calls + cost) | `/me/api-keys/:id/usage` + cabinet UI |
+| `X-RateLimit-*` headers | `X-RateLimit-*` headers (same names) |
+| Per-model breakdown | `by_model` in `/usage` |
+
+The cabinet page at [agentflow.website/account/api-keys](https://agentflow.website/account/api-keys) renders the full activity surface — limits panel + stat cards + period progress + daily chart + recent calls — without extra API calls for you to make.
+
+## Cabinet UI
+
+A self-service "API Keys" tab in the [cabinet](https://agentflow.website/account/api-keys) lets you create, list, and revoke keys; the per-key detail page at `/account/api-keys/:id` exposes the limits editor + activity surface described above.
+
+## Rotation
+
+Keys are immutable from a credential standpoint. To rotate:
+
+1. `apiKeys.create({ name: 'ci-runner-v2', … })`.
+2. Swap your service config to the new key. Both keys keep working in parallel.
+3. `apiKeys.revoke(<old-id>)`.
+
+The window between steps 1–3 is your safety margin; the old key keeps its `last_used_at` ticking so you can confirm everything migrated before pulling the plug.
 
 ## Security checklist
 
-- Store the raw key in environment variables, secret managers (1Password, AWS Secrets Manager, doppler), or sealed CI variables. **Never** commit it to git.
-- Treat the key like a password. If a teammate leaves or a runner is compromised, revoke immediately and rotate.
-- Prefer the cookie session for browser code — `apiKey` only makes sense in trusted server-side contexts.
-- The HMAC secret on the server is rotatable independently of the JWT secret via `API_KEY_HMAC_SECRET`. Operators should set this explicitly in production.
-
-## Scopes
-
-Today every key inherits the full scope of its owner. The `scopes` column exists in the schema and the create response will accept a `scopes` array on a future revision (planned Q3 2026); until then, treat keys as full-access — protect them accordingly.
-
-## Errors
-
-| Status | Code | When |
-|---|---|---|
-| 400 | `invalid_body` | `name` missing or longer than 64 chars |
-| 400 | `bad_id` | `:id` is not a positive integer |
-| 401 | `invalid_api_key` | Header value malformed, unknown, or revoked |
-| 401 | `unauthenticated` | No credential at all |
-| 404 | `not_found` | Revoking a key that doesn't exist or isn't yours |
+- Store the raw key in env vars, secret managers (1Password, AWS Secrets Manager, doppler), or encrypted CI variables. **Never** commit it to git.
+- Treat the `prefix` as the user-facing identifier in audit views — it is safe to share.
+- Set a `spend_limit_flow` even if you trust the consumer — it's the cheapest blast radius limit you'll ever set.
+- Rotate on a schedule (quarterly is a sane default) using the create-then-revoke flow above.
+- Revoke immediately on suspected leaks — soft-revoke preserves the audit trail without giving the attacker any wiggle room.
