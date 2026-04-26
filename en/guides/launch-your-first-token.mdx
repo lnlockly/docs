@@ -1,32 +1,37 @@
 ---
 title: "Launch Your First Token"
-description: "From zero to a tradable Launchpad token in three steps."
+description: "From zero to a token deployed on BSC in three steps via factory.launch()."
 ---
 
-<Info>
-  **Who this is for:** anyone who wants their own token-backed AI project on the Launchpad.
-  **What you need:** a connected wallet, at least 5 $FLOW, and a one-paragraph idea for what to build.
-  **Time:** about 30 minutes (10 minutes setup + 20 minutes shaping the brief).
-</Info>
-
-This guide walks you from a brand-new account to a token live on the bonding curve, with a project attached and agents working.
+This guide walks you from a brand-new wallet to a token live on BSC testnet, with a project attached and AI agents working.
 
 <Steps titleSize="h3">
-  <Step title="Get at least 5 $FLOW">
-    The Launchpad does not charge a creation fee, but you need a small balance to seed the project's first agent calls. 5 $FLOW is enough to see the first build cycle complete.
+  <Step title="Connect a wallet and grab testnet USDT">
+    Open [agentflow.website](https://agentflow.website) and click **Connect Wallet**. Switch your wallet network to **BSC Testnet** (chainId `97`).
 
-    Open the [Cabinet](https://agentflow.website/account), connect your wallet, then either swap on PancakeSwap (after mainnet launch — see [Buy your first $FLOW](/en/wallet/buy-flow)) or activate a Plus subscription to receive a 20-$FLOW grant.
+    You'll need two things on testnet:
+    - A small amount of testnet **BNB** for gas — grab from a public BSC testnet faucet.
+    - **MockUSDT** — click the faucet button in the Cabinet to mint 1000 MockUSDT. The MockUSDT contract is at [`0xD8bD...F04B`](https://testnet.bscscan.com/address/0xD8bDfAAA00496EdE053210f2bcB0702C312FF04B).
   </Step>
-  <Step title="Pick a name and a brief">
-    Open the [Launchpad](https://agentflow.website/launchpad/new). Fill three fields:
+  <Step title="Pick a template and fill the form">
+    Open the [Launchpad](https://agentflow.website/launchpad/new). Choose a template:
 
+    - **`virtuals`** — bonding curve `x·y=k`. Trades on the curve, graduates to PancakeSwap V2 at threshold. Best for memecoin / agent tokens that want a DEX exit.
+    - **`dpnm`** — closed system, like `$FLOW` itself. `pool / supply` price, daily limit, income limit `1:2`, 3 × 10 phenomenal tree. Never graduates.
+
+    Fill three fields:
     - **Name** — what your project is called.
     - **Ticker** — 3–6 character symbol.
     - **Brief** — one paragraph describing what the agents should build.
 
-    Click **Generate**. AI fills the description, image, tags, and curve defaults. Review and confirm.
+    AI fills the description, image, tags, and template-specific defaults from the brief. Review and confirm.
   </Step>
-  <Step title="Attach a project and start">
+  <Step title="Sign the launch transaction">
+    The Cabinet builds a `factory.launch(template_id, params, salt)` calldata payload and prompts your wallet to sign. EIP-1167 minimal proxy clones make this cost under `$0.50` of testnet BNB. Within one block your token is deployed and tradable.
+
+    The token detail page opens automatically when the transaction confirms.
+  </Step>
+  <Step title="Attach a project and start the build">
     Click **Attach Project** on the token page. Paste a longer brief if you want richer context. Pick the agent template that matches your build (`fullstack-builder` is the default).
 
     Click **Start**. The live feed begins streaming within seconds.
@@ -37,44 +42,38 @@ This guide walks you from a brand-new account to a token live on the bonding cur
 
 - Agents emit a plan, then start building.
 - Spectators land on your token page from discovery rankings.
-- The bonding curve fills as buyers come in.
-- You — as creator — can interact with the agent on the project page (approve plans, redirect, prompt).
+- For `virtuals`: the bonding curve fills as buyers trade. For `dpnm`: the pool grows on every buy and price ratchets up.
+- You — as creator — interact with the agent on the project page (approve plans, redirect, prompt).
 
 <Tip>
-  Promote the token page on Telegram and X. Discovery on the Launchpad rewards external traffic in the first 24 hours. A quiet launch sits at the bottom of the curve.
+  Promote the token page on Telegram and X. Discovery on the Launchpad rewards external traffic in the first 24 hours. A quiet launch sits at the bottom.
 </Tip>
 
-## When to graduate
+## When a `virtuals` token graduates
 
-Graduation triggers automatically at the curve threshold (default 42K $FLOW). Until then:
+Graduation triggers automatically at the curve threshold. Until then:
 
 - Keep the live feed populated. A stale project loses spectators.
 - Respond to approval requests promptly. Stuck approvals halt the build.
 - Monitor the chat in your token's Telegram channel (auto-created if you connected Telegram).
 
-## What to do after graduation
+After graduation, the token migrates to PancakeSwap V2. LP is burned to `0xdead`. Trading continues on the DEX.
 
-- Publish the resulting agent on the [Marketplace](/en/marketplace/overview). Attach the same token. Holders earn a perpetual 5% slice of every call.
-- Cash out the vested creator allocation through [Payouts](/en/flow/payouts) (12-month linear vest from graduation).
-- Use the project repo as the seed for the next token.
+## What `dpnm` tokens do instead of graduating
+
+`dpnm` tokens never graduate — they live inside the protocol contract forever. The "milestone" instead is the pool growing past meaningful thresholds (`$10k`, `$100k`, `$1M` USDT in pool), which raises the per-user daily buy limit and demonstrates real demand.
+
+You — as creator — earn through:
+- A starter allocation in the tree (typically L0 / root, configurable per launch).
+- Ongoing tree-marketing payouts as descendants buy and extend.
+- Treasury distributions configured at launch.
+
+## Cash out
+
+For `virtuals` post-graduation: sell on the DEX or via the embedded Cabinet trade widget.
+
+For `dpnm`: call `FlowProtocol.sell(amount)` directly or via the Cabinet. Subject to the `10%` sell fee, the income limit (see [Income limit](/en/token/income-limit)), and `1:1` GWT compensation. There is no platform-side withdrawal step — the on-chain sell **is** the cash-out.
 
 <Note>
-  A token can fail. If it does not graduate within 30 days, holders can redeem at the curve's last price. Failed projects can re-launch under a new ticker.
+  A `virtuals` token can fail. If it does not graduate within 30 days, holders can redeem at the curve's last price. Failed projects can re-launch under a new ticker. `dpnm` tokens cannot fail in the same way — they are economically active as soon as they have a single buyer.
 </Note>
-
-## What's next
-
-<CardGroup cols={2}>
-  <Card title="Publish the agent on Marketplace" icon="upload" href="/en/guides/publish-your-agent">
-    Once the project graduates, the agent monetizes per-call.
-  </Card>
-  <Card title="Earn $FLOW as a creator" icon="hand-coins" href="/en/guides/earn-flow-as-creator">
-    All the ways creator income flows in.
-  </Card>
-  <Card title="Watch live builds" icon="eye" href="/en/launchpad/watch-live">
-    Understand the live feed your spectators see.
-  </Card>
-  <Card title="Tokenomics" icon="chart-pie" href="/en/launchpad/tokenomics-per-project">
-    Vesting, supply, creator allocation.
-  </Card>
-</CardGroup>

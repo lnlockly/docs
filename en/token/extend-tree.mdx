@@ -1,0 +1,101 @@
+---
+title: "Extend Tree"
+description: "Tree active status: 10 USDT = 30 days. Stack up to 90 days. Inactive = no marketing payouts."
+---
+
+A tree position is either **active** or **inactive** at any given time. Active positions earn marketing payouts when descendants buy or extend. Inactive positions forfeit their slice to the treasury.
+
+This page covers activation and extension — the two ways to keep your tree status active.
+
+## Activation (one-time, first call)
+
+The very first time an address interacts with the phenomenal tree, it must call `activate(referrer)`:
+
+```typescript
+// Approve USDT
+await usdt.approve(flowProtocol.address, parseUnits("10", 18));
+
+// Activate, picking your upline
+await flowProtocol.activate(uplineAddress);
+```
+
+Effects:
+- Costs `10 USDT` (subject to the standard `dpnm` fee distribution).
+- Places caller in the phenomenal tree under `uplineAddress` — direct slot 1/2/3, or spillover if all are full.
+- Sets `treeActiveUntil[caller] = now + 30 days`.
+- Caller receives `1 GWT` (1:1 of the `10 USDT` paid out as marketing + treasury split — the `$5` marketing portion routes up the tree, `$1` to pool, `$4` to treasury).
+
+After activation, the caller can call `buy`, `sell`, `extendTree`, etc.
+
+## Extension (renewing or stacking active days)
+
+To stay active beyond the initial 30 days, call `extendTree(months)`:
+
+```typescript
+await usdt.approve(flowProtocol.address, parseUnits("10", 18));
+await flowProtocol.extendTree(1);   // 30 more days
+```
+
+Or stack:
+
+```typescript
+await usdt.approve(flowProtocol.address, parseUnits("30", 18));
+await flowProtocol.extendTree(3);   // 90 days, the cap
+```
+
+| Param | Cost | Days added | Notes |
+|---|---|---|---|
+| `extendTree(1)` | `10 USDT` | 30 | Standard renewal |
+| `extendTree(2)` | `20 USDT` | 60 | Two months in one call |
+| `extendTree(3)` | `30 USDT` | 90 | Maximum stack |
+
+**Stack cap: 90 days.** If your `treeActiveUntil` is already 60 days in the future and you call `extendTree(2)`, it would push to `120 days` — the contract reverts with `ExtendStackCap`. Wait until the buffer is below 60 days before stacking 30 more.
+
+## Payout split per extend (re-stated from [Phenomenal tree](/en/token/phenomenal-tree))
+
+For each `$10` of extension cost:
+
+| Bucket | Amount |
+|---|---|
+| Marketing across 10 ancestors | `$5.0` (`0.1` × 3 + `0.5` × 3 + `0.8` × 4) |
+| Pool retention | `$1.0` |
+| Treasury | `$4.0` |
+
+If any ancestor among L1–L10 is inactive at the moment of the call, their level's slice is added to the treasury rather than to that address.
+
+## What "active" means in practice
+
+- **Active**: descendants' buys and extends pay you in real-time. GWT compensation accrues. Your `treeActiveUntil > now`.
+- **Inactive**: descendants' buys and extends pay your share to the treasury instead. You can still buy, sell, and call `extendTree` to reactivate — but you have lost the missed payouts permanently.
+
+There is no penalty for being inactive other than forfeited income. The protocol does not slash your `$FLOW` balance, your income limit, or your tree position.
+
+## Reading active status
+
+```typescript
+const activeUntil = await flowProtocol.treeActiveUntil(myAddress);
+const isActive = activeUntil > Math.floor(Date.now() / 1000);
+const remainingDays = isActive
+  ? Math.floor((activeUntil - Date.now() / 1000) / 86400)
+  : 0;
+```
+
+Or via REST:
+
+```bash
+curl https://api.agentflow.website/me/flow-onchain \
+  -H "Cookie: af_session=..."
+```
+
+## Common patterns
+
+**Auto-extend from a backend.** Run a cron that watches `treeActiveUntil` and calls `extendTree(1)` when remaining days falls below a threshold (e.g. 5 days).
+
+**Manual stack at month start.** A more capital-efficient pattern: at the start of each calendar month, call `extendTree(3)` once you are past day 60 of the prior period.
+
+**Vacation mode.** If you do not want to keep extending, just stop. You stay in the tree position, your descendants continue to grow, but you forfeit payouts. Reactivating later is one `extendTree(months)` call away — your tree position is preserved.
+
+## See also
+
+- [Phenomenal tree](/en/token/phenomenal-tree) — the structural details.
+- [GWT](/en/token/gwt) — what to do with the GWT you accumulate from extends.

@@ -1,7 +1,23 @@
 ---
 title: "Subscriptions API"
-description: "Activate a tier, query status, manage payouts."
+description: "Activate a tier, query status. Subscriptions unlock platform features (priority queue, premium agents, faster SSE) — they no longer grant FLOW credits."
 ---
+
+Subscriptions on AgentFlow are now **feature gates**, not credit grants. The previous monthly FLOW-credit grant model is gone with the move of `$FLOW` to an on-chain token. Subscriptions unlock platform-side features for marketplace and live build users.
+
+<Note>
+  Earlier docs referenced `monthlyGrantFlow` and `currentGrantRemainingFlow`. These fields are removed. If you have a billing system that depended on them, switch to feature checks (`features.priorityQueue`, `features.premiumAgents`, etc.).
+</Note>
+
+## Tiers
+
+| Tier | Monthly USD | Features |
+|---|---|---|
+| **Plus** | $20 | Priority queue, basic analytics |
+| **Pro** | $100 | All Plus + premium agents, advanced analytics, faster SSE |
+| **Max** | $200 | All Pro + private project pages, dedicated runtime slot |
+
+Tier changes take effect at next billing period for downgrades, immediately for upgrades (pro-rated).
 
 ## POST /subscriptions/checkout
 
@@ -11,11 +27,15 @@ Initiate a subscription checkout flow. **Auth**: required.
   One of `plus`, `pro`, `max`.
 </ParamField>
 
+<ParamField body="provider" type="string" required>
+  One of `cryptobot`, `platega`, `usdt_bep20`.
+</ParamField>
+
 ```bash
 curl -X POST https://api.agentflow.website/subscriptions/checkout \
   -H "Content-Type: application/json" \
   -H "Cookie: af_session=..." \
-  -d '{ "tier": "pro" }'
+  -d '{ "tier": "pro", "provider": "cryptobot" }'
 ```
 
 **Response**
@@ -24,14 +44,13 @@ curl -X POST https://api.agentflow.website/subscriptions/checkout \
 {
   "subscriptionId": "sub_01HQ...",
   "tier": "pro",
-  "contractAddress": "0x...",
-  "amountFlow": 100,
-  "payload": "0x...",
-  "expiresAt": "2026-04-25T11:30:00Z"
+  "provider": "cryptobot",
+  "checkoutUrl": "https://t.me/CryptoBot?start=invoice-...",
+  "expiresAt": "2026-04-26T11:30:00Z"
 }
 ```
 
-Pass `contractAddress`, `amountFlow`, and `payload` to the user's wallet to build the on-chain transaction. Activation completes once the chain indexer detects the deposit. Pre-launch, `contractAddress` is `null` and the platform debits the off-chain ledger directly.
+The `checkoutUrl` is provider-specific. Redirect the user there. Activation happens server-side once the provider's webhook confirms.
 
 ## GET /me/subscription
 
@@ -48,62 +67,41 @@ curl https://api.agentflow.website/me/subscription \
 {
   "tier": "pro",
   "status": "active",
-  "monthlyGrantFlow": 100,
-  "currentGrantRemainingFlow": 73.4,
-  "renewsAt": "2026-05-25T11:30:00Z",
-  "txHash": "0x..."
+  "renewsAt": "2026-05-26T11:30:00Z",
+  "provider": "cryptobot",
+  "features": {
+    "priorityQueue": true,
+    "premiumAgents": true,
+    "fasterSse": true,
+    "privateProjects": false,
+    "dedicatedRuntime": false
+  }
 }
 ```
 
 `status` values: `active`, `grace` (failed renewal, retrying), `canceled`, `none`.
 
-## POST /me/payouts/request
+## POST /me/subscription/cancel
 
-Withdraw $FLOW. See [Payouts](/en/flow/payouts) for the full flow.
-
-<ParamField body="amountFlow" type="number" required>
-  Amount in $FLOW. Must be ≤ withdrawable balance.
-</ParamField>
-
-<ParamField body="rail" type="string" required>
-  `wallet` or `manual`.
-</ParamField>
+Cancel at end-of-period. The user keeps the tier until `renewsAt`, then drops to `none`.
 
 ```bash
-curl -X POST https://api.agentflow.website/me/payouts/request \
-  -H "Content-Type: application/json" \
-  -H "Cookie: af_session=..." \
-  -d '{ "amountFlow": 100, "rail": "wallet" }'
-```
-
-The destination address is taken from your SIWE-verified wallet.
-
-## GET /me/payouts
-
-List the user's payouts.
-
-```bash
-curl https://api.agentflow.website/me/payouts \
+curl -X POST https://api.agentflow.website/me/subscription/cancel \
   -H "Cookie: af_session=..."
 ```
 
-**Response**: array of payout objects with `id`, `amountFlow`, `feeFlow`, `rail`, `status`, `createdAt`.
+## Auto-renew and grace
 
-## GET /me/payouts/:id
-
-Single payout detail, including rail-specific tx hash if `sent` or `confirmed`.
-
-## POST /me/payouts/:id/cancel
-
-Cancel a `pending` payout and re-credit the $FLOW.
+Subscriptions auto-renew through the same provider used at activation. If the renewal payment fails, the subscription enters a 7-day grace period during which features stay live and payment retries daily. After 7 days of failed retries the subscription is canceled.
 
 ## Errors
 
 | Code | When |
 |---|---|
 | `tier_unknown` | Bad tier value |
+| `provider_unsupported` | Provider not enabled in this deployment |
 | `subscription_active` | New checkout while one is already active |
-| `withdraw_too_low` | Below the rail's minimum |
-| `withdraw_too_high` | Above withdrawable balance |
-| `wallet_not_connected` | Wallet rail without a SIWE-linked address |
-| `payout_immutable` | Cancel attempted on `sent`/`confirmed` payout |
+
+<Note>
+  Withdrawals are no longer handled through this endpoint group. With `$FLOW` on-chain, "withdrawal" simply means selling tokens via `FlowProtocol.sell(...)` directly from your wallet to the USDT pair. See [Buy / Sell](/en/token/buy-sell). The old `/me/payouts` endpoints are deprecated.
+</Note>

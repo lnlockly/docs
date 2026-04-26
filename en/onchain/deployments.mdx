@@ -1,0 +1,81 @@
+---
+title: 'Deployments'
+description: 'Live contract addresses for AgentFlow on every supported chain'
+---
+
+<Note>
+This page is the **source of truth** for live AgentFlow contract addresses.
+Updated automatically each time we deploy. If the address you find on an
+explorer doesn't match what's here, the page is stale — open an issue.
+</Note>
+
+## BSC Testnet (chainId 97)
+
+Deployed: **2026-04-26**
+Deployer EOA: [`0x29c435832C166892C096c055316fd6992479C428`](https://testnet.bscscan.com/address/0x29c435832C166892C096c055316fd6992479C428)
+
+### Factory + infrastructure
+
+| Contract | Address |
+|----------|---------|
+| **LaunchpadFactory** (UUPS) | [`0x713d03A57f9e2c5A526D0C5177342e9417841920`](https://testnet.bscscan.com/address/0x713d03A57f9e2c5A526D0C5177342e9417841920) |
+| MockUSDT (testnet `paymentToken`) | [`0xD8bDfAAA00496EdE053210f2bcB0702C312FF04B`](https://testnet.bscscan.com/address/0xD8bDfAAA00496EdE053210f2bcB0702C312FF04B) |
+| ReferralRegistry (UUPS) | [`0x345dEe9E95268facaA0ee3D5d55C78DB2482fB3a`](https://testnet.bscscan.com/address/0x345dEe9E95268facaA0ee3D5d55C78DB2482fB3a) |
+| ReferralPayouts (UUPS) | [`0xa6Db6A911c18E327c35eaF5355c0DfBc7be2E371`](https://testnet.bscscan.com/address/0xa6Db6A911c18E327c35eaF5355c0DfBc7be2E371) |
+| Migrator (PancakeSwap V2) | [`0x24C8C2039Ae23E81379a03FA3B297AD0d1474ED8`](https://testnet.bscscan.com/address/0x24C8C2039Ae23E81379a03FA3B297AD0d1474ED8) |
+
+### Template implementations
+
+These are the implementation contracts each `factory.launch()` call clones.
+You don't interact with them directly — instances created by the factory
+do all the work.
+
+| Template | Implementation |
+|----------|----------------|
+| `dpnm` orchestrator | [`0x45ca7718FA17376bCAbBB5ddB0C254FE621c7966`](https://testnet.bscscan.com/address/0x45ca7718FA17376bCAbBB5ddB0C254FE621c7966) |
+| dpnm sub-impl: Flow | [`0xa14478D4d1A8D40CD46dc194663837c42e214671`](https://testnet.bscscan.com/address/0xa14478D4d1A8D40CD46dc194663837c42e214671) |
+| dpnm sub-impl: GWT | [`0x15103e08eD1f3EF27DBb213904558C07feDaC9A9`](https://testnet.bscscan.com/address/0x15103e08eD1f3EF27DBb213904558C07feDaC9A9) |
+| dpnm sub-impl: PhenomenalTree | [`0x7872bC63498aAC6BbfB99125c2661771B3007596`](https://testnet.bscscan.com/address/0x7872bC63498aAC6BbfB99125c2661771B3007596) |
+| dpnm sub-impl: FlowProtocol | [`0xc7Fb2f60f038B53c968d950C0d50cFd186379B2B`](https://testnet.bscscan.com/address/0xc7Fb2f60f038B53c968d950C0d50cFd186379B2B) |
+| `virtuals` orchestrator | [`0x9ef827E9b8D5cDe3b58B39F9348F6380f5d858B5`](https://testnet.bscscan.com/address/0x9ef827E9b8D5cDe3b58B39F9348F6380f5d858B5) |
+| virtuals sub-impl: FFactory | [`0xE03DE524de6Ea6e6551F71882bc1ECF31A0eC7D0`](https://testnet.bscscan.com/address/0xE03DE524de6Ea6e6551F71882bc1ECF31A0eC7D0) |
+| virtuals sub-impl: FRouter | [`0xAAa1FE15D1CB60C103d66D3b24A6371379677333`](https://testnet.bscscan.com/address/0xAAa1FE15D1CB60C103d66D3b24A6371379677333) |
+| virtuals sub-impl: Bonding | [`0x104bC5dfb3D55559669083cCF06dA4e140eDB798`](https://testnet.bscscan.com/address/0x104bC5dfb3D55559669083cCF06dA4e140eDB798) |
+
+### Live token instances
+
+Each row is a real deployed token created via `factory.launch(...)`.
+
+#### `$FLOW` — dpnm template
+
+The platform token. Closed-system, paired with MockUSDT, 3×10 phenomenal tree.
+
+| Component | Address |
+|-----------|---------|
+| **$FLOW token** | [`0x2680b933af7a874d20954b03F38C86891A786511`](https://testnet.bscscan.com/address/0x2680b933af7a874d20954b03F38C86891A786511) |
+| FlowProtocol (entry point — `activate`/`buy`/`sell`/`extendTree`) | [`0x7F20f8e6e5077a4E11A1A2Fe54449ab55D32f653`](https://testnet.bscscan.com/address/0x7F20f8e6e5077a4E11A1A2Fe54449ab55D32f653) |
+| PhenomenalTree | [`0x9E12238d24Eece9b7575a53b17e36515eaEE0A30`](https://testnet.bscscan.com/address/0x9E12238d24Eece9b7575a53b17e36515eaEE0A30) |
+| FlowGrowToken (GWT) | [`0x40711d364b680ad7e85429bd36d7237E4e960783`](https://testnet.bscscan.com/address/0x40711d364b680ad7e85429bd36d7237E4e960783) |
+| Template instance | [`0x6B7700395708a0B2578B5E3d58b895C34a24e959`](https://testnet.bscscan.com/address/0x6B7700395708a0B2578B5E3d58b895C34a24e959) |
+
+**Parameters:**
+- Initial price: `0.1 USDT / FLOW`
+- Daily limit: `max(50 USDT, pool * 0.1%)`
+- Income limit: `1:2` on every buy
+- Buy fee: 20% — 10% to phenomenal tree marketing, 10% retained in pool
+- Sell fee: 10% — 5% to pool, 5% to treasury
+- Activation: `10 USDT` one-time, 30-day tree active window
+- Extend: `10 USDT / 30 days`, max 90-day stack
+
+## BSC Mainnet (chainId 56)
+
+<Warning>
+Not deployed yet. Mainnet deploys are gated behind a completed third-party
+audit. ETA depends on audit availability.
+</Warning>
+
+## Base Mainnet (chainId 8453)
+
+<Warning>
+Not deployed yet. Phase 2 — multi-chain rollout starts after BSC mainnet.
+</Warning>

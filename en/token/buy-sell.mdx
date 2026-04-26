@@ -1,0 +1,119 @@
+---
+title: "Buy & Sell $FLOW"
+description: "Daily limit, fee structure, and the on-chain flow for buying and selling through FlowProtocol."
+---
+
+Every buy and sell of `$FLOW` is an on-chain transaction routed through the `FlowProtocol` contract. There is no order book and no DEX pair — `FlowProtocol` is the only counterparty.
+
+## Pre-flight: activation
+
+Before you can buy `$FLOW`, your address must be **activated** on the phenomenal tree. Activation costs `10 USDT` and is a one-time call:
+
+```typescript
+// Approve USDT first
+await usdt.approve(flowProtocol.address, parseUnits("10", 18));
+
+// Activate with a referrer (or 0x0 if no referrer)
+await flowProtocol.activate(referrerAddress);
+```
+
+After `activate`, you have **30 days of tree active status** — meaning you can earn from descendants buying or extending. To stay active beyond 30 days, call [`extendTree`](/en/token/extend-tree).
+
+You can buy `$FLOW` even after your tree active status expires, but you stop accruing tree marketing rewards until you re-extend.
+
+## Daily buy limit
+
+Each user can deposit at most:
+
+```
+dailyLimit = max(50 USDT, pool_USDT * 0.001)
+```
+
+per rolling 24-hour window. With a `$1M` pool, the limit is `$1000/day` per address. The limit refills based on sells in the prior 48h — so if a sell happens, available capacity for buys reopens proportionally.
+
+The limit is enforced inside `FlowProtocol.buy(...)`. A buy that would exceed your remaining capacity reverts with `DailyLimitExceeded`.
+
+<Note>
+  The limit exists to keep the closed system fair. If a whale could deposit unlimited USDT in a single transaction, they could front-run all later buyers and lock the protocol's growth into their own income limit.
+</Note>
+
+## Buy flow
+
+```typescript
+// Approve
+const amount = parseUnits("100", 18); // 100 USDT
+await usdt.approve(flowProtocol.address, amount);
+
+// Buy
+const tx = await flowProtocol.buy(amount);
+const receipt = await tx.wait();
+```
+
+What happens in the contract:
+
+| Step | Effect |
+|---|---|
+| Pull `100 USDT` from caller | balance moves to `FlowProtocol` |
+| Compute `flowOut = (100 * 0.80) / current_price` | `80%` of USDT sized at current price |
+| Mint `flowOut` to caller | total supply rises |
+| `pool += 90 USDT` | pool grows by `100 - 10` (10 went to tree) |
+| Distribute `10 USDT` to phenomenal tree ancestors | per-level payout, see [Phenomenal tree](/en/token/phenomenal-tree) |
+| Caller's income limit `+= 200 USDT` | (`100 * 2` for `1:2` multiplier) |
+| Mint `20 GWT` to caller | (`1:1` of `20 USDT` total fee) |
+
+## Sell flow
+
+```typescript
+const flowAmount = parseUnits("500", 18); // 500 FLOW
+const tx = await flowProtocol.sell(flowAmount);
+```
+
+What happens in the contract:
+
+| Step | Effect |
+|---|---|
+| Compute `value = flowAmount * current_price` | e.g. `$200` |
+| Apply sell fee `10%` | `$20` fee, `$180` to caller |
+| Of fee: `$10` retained in pool, `$10` to treasury | pool keeps growing slightly |
+| Burn `flowAmount` `$FLOW` from caller | total supply drops |
+| Mint `2 GWT` to caller | (`1:1` of `$20` fee, in dollar terms) |
+| Burn income limit | see [Income limit](/en/token/income-limit) for the `<=` vs `>` cases |
+
+## Why the price keeps rising
+
+After the buy: `pool += 90`, `supply += 80/price`. Ratio rises.
+After the sell: `pool -= 180`, `supply -= flowAmount`. The `5%` retained in pool means the ratio still ratchets up — sells extract less than they put in proportionally.
+
+This is the closed-system invariant. See [Closed system](/en/concepts/closed-system) for the formal statement.
+
+## Slippage and reverts
+
+Buys and sells do not take a `minOut` parameter — the price at execution is the price at the block of execution, full stop. If the pool moves between you submitting and the block being mined, your effective price moves. For large trades, this is usually negligible because daily limits cap individual trade size.
+
+Common revert reasons:
+
+| Error | Meaning |
+|---|---|
+| `NotActivated` | Caller has not called `activate()` yet |
+| `DailyLimitExceeded` | Buy would exceed `dailyLimit` for this 24h window |
+| `InsufficientBalance` | Sell amount exceeds caller's `$FLOW` balance |
+| `IncomeLimitExhausted` | (Edge case) caller's income limit cannot absorb a 1:1 burn |
+
+## Reading state
+
+```typescript
+const price = await flowProtocol.currentPrice();             // pool / supply
+const myDailyRemaining = await flowProtocol.dailyRemaining(me);
+const myIncomeLimit = await flowProtocol.incomeLimit(me);
+const myTreeActiveUntil = await flowProtocol.treeActiveUntil(me);
+const myGwtClaimable = await flowProtocol.claimableGWT(me);
+```
+
+Or read via the API:
+
+```bash
+curl https://api.agentflow.website/me/flow-onchain \
+  -H "Cookie: af_session=..."
+```
+
+See [FLOW Onchain API](/en/api/flow-onchain).

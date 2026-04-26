@@ -1,0 +1,85 @@
+---
+title: 'Onchain architecture'
+description: 'How the AgentFlow launchpad and $FLOW contracts fit together'
+---
+
+## The big picture
+
+AgentFlow's onchain layer is a **single factory** that deploys tokens from
+a registry of audited templates. Every token — including `$FLOW` itself — is
+just an instance of a registered template.
+
+```
+                                ┌──────────────────────┐
+                                │  LaunchpadFactory    │
+                                │  (UUPS proxy)        │
+                                │                      │
+                                │  templates:          │
+                                │   - "virtuals"       │
+                                │   - "dpnm"           │
+                                │   - (future:         │
+                                │      ai-custom)      │
+                                └──────────┬───────────┘
+                                           │
+                  factory.launch(id, params, salt)
+                                           │
+                       EIP-1167 Clones.cloneDeterministic
+                                           │
+              ┌────────────────────────────┴────────────────────────────┐
+              ▼                                                         ▼
+   ┌──────────────────────┐                              ┌──────────────────────┐
+   │  VirtualsTemplate    │                              │  DpnmTemplate        │
+   │  bonding curve x·y=k │                              │  closed system       │
+   │  → DEX graduation    │                              │  100% USDT backing   │
+   │                      │                              │  3×10 phenomenal tree│
+   │  (for memecoin/agent │                              │  (for $FLOW & MLM)   │
+   │   tokens)            │                              │                      │
+   └──────────────────────┘                              └──────────────────────┘
+```
+
+## Why a factory
+
+A factory pattern gives us three things:
+
+1. **One audit per template.** When `Spearbit` finishes the dpnm template,
+   *every* dpnm instance ever deployed gets the audit for free. No re-auditing
+   per token launch.
+2. **Cheap deploys.** EIP-1167 minimal proxy clones cost ~`$2` of gas instead
+   of `$200` for a full bytecode deploy. A token launch on BSC stays under
+   `$0.50` total.
+3. **Open-ended.** Adding a new template is one transaction —
+   `factory.registerTemplate(id, impl, initSelector)`. The next token type
+   (vesting? staking? AI-custom?) doesn't need a new factory.
+
+## Template philosophy
+
+| Template | When you'd pick it | Mechanic | DEX exit? |
+|----------|-------------------|----------|-----------|
+| **virtuals** | Memecoin / agent token / community speculation | Bonding curve `x·y=k` priced in `paymentToken` | ✅ At graduation, LP migrated to PancakeSwap V2 (BSC) or Uniswap V2 (Base), LP burned to `0xdead` |
+| **dpnm** | Closed-system MLM token where the team controls the curve and price-only-goes-up is a feature | Algorithmic price `pool / supply`, daily buy limit, income limit `1:2`, 3-branch × 10-level phenomenal tree, GWT compensation | ❌ Token never leaves the protocol contract. Backed 100% by `paymentToken` in the pool |
+
+## Multichain by design
+
+The factory itself is identical Solidity on every EVM chain. Today we ship
+to BSC; Base and other L2s plug in by:
+
+1. Deploying the factory + template implementations on the new chain
+2. Wiring chain-specific `paymentToken` and `dexRouter` addresses into the
+   `launch()` call params
+3. Registering the same template ids
+
+The deployer key, multisig, and treasury can be different per chain — they're
+all just constructor params for each instance.
+
+## What's deployed today
+
+See [Deployments](/en/onchain/deployments) for live addresses.
+
+## Audit posture
+
+- **Threat model + invariants + attack scenarios** for the dPNM template
+  live in `agentflow-contracts/audit-flow/` (private repo).
+- **Recommended audit path:** Spearbit private (~$120k–180k) → Code4rena
+  public contest ($80k–120k) → Immunefi bounty ($500k pool, 90 days post-launch).
+- Mainnet deploys are gated behind audit completion. Testnet deploys exist
+  for integration work and can be redeployed at any time.

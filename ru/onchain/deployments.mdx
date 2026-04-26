@@ -1,0 +1,81 @@
+---
+title: 'Деплой'
+description: 'Живые адреса контрактов AgentFlow на каждой поддерживаемой сети'
+---
+
+<Note>
+Эта страница — **источник истины** по живым адресам контрактов AgentFlow.
+Обновляется автоматически с каждым деплоем. Если адрес в эксплорере не
+совпадает с тем, что здесь, — страница устарела, открывайте issue.
+</Note>
+
+## BSC Testnet (chainId 97)
+
+Деплой: **2026-04-26**
+Deployer EOA: [`0x29c435832C166892C096c055316fd6992479C428`](https://testnet.bscscan.com/address/0x29c435832C166892C096c055316fd6992479C428)
+
+### Фабрика + инфраструктура
+
+| Контракт | Адрес |
+|----------|---------|
+| **LaunchpadFactory** (UUPS) | [`0x713d03A57f9e2c5A526D0C5177342e9417841920`](https://testnet.bscscan.com/address/0x713d03A57f9e2c5A526D0C5177342e9417841920) |
+| MockUSDT (testnet `paymentToken`) | [`0xD8bDfAAA00496EdE053210f2bcB0702C312FF04B`](https://testnet.bscscan.com/address/0xD8bDfAAA00496EdE053210f2bcB0702C312FF04B) |
+| ReferralRegistry (UUPS) | [`0x345dEe9E95268facaA0ee3D5d55C78DB2482fB3a`](https://testnet.bscscan.com/address/0x345dEe9E95268facaA0ee3D5d55C78DB2482fB3a) |
+| ReferralPayouts (UUPS) | [`0xa6Db6A911c18E327c35eaF5355c0DfBc7be2E371`](https://testnet.bscscan.com/address/0xa6Db6A911c18E327c35eaF5355c0DfBc7be2E371) |
+| Migrator (PancakeSwap V2) | [`0x24C8C2039Ae23E81379a03FA3B297AD0d1474ED8`](https://testnet.bscscan.com/address/0x24C8C2039Ae23E81379a03FA3B297AD0d1474ED8) |
+
+### Реализации шаблонов
+
+Это implementation-контракты, которые клонируются каждым вызовом
+`factory.launch()`. Напрямую с ними не взаимодействуют — всю работу
+делают инстансы, созданные фабрикой.
+
+| Шаблон | Реализация |
+|----------|----------------|
+| `dpnm` orchestrator | [`0x45ca7718FA17376bCAbBB5ddB0C254FE621c7966`](https://testnet.bscscan.com/address/0x45ca7718FA17376bCAbBB5ddB0C254FE621c7966) |
+| dpnm sub-impl: Flow | [`0xa14478D4d1A8D40CD46dc194663837c42e214671`](https://testnet.bscscan.com/address/0xa14478D4d1A8D40CD46dc194663837c42e214671) |
+| dpnm sub-impl: GWT | [`0x15103e08eD1f3EF27DBb213904558C07feDaC9A9`](https://testnet.bscscan.com/address/0x15103e08eD1f3EF27DBb213904558C07feDaC9A9) |
+| dpnm sub-impl: PhenomenalTree | [`0x7872bC63498aAC6BbfB99125c2661771B3007596`](https://testnet.bscscan.com/address/0x7872bC63498aAC6BbfB99125c2661771B3007596) |
+| dpnm sub-impl: FlowProtocol | [`0xc7Fb2f60f038B53c968d950C0d50cFd186379B2B`](https://testnet.bscscan.com/address/0xc7Fb2f60f038B53c968d950C0d50cFd186379B2B) |
+| `virtuals` orchestrator | [`0x9ef827E9b8D5cDe3b58B39F9348F6380f5d858B5`](https://testnet.bscscan.com/address/0x9ef827E9b8D5cDe3b58B39F9348F6380f5d858B5) |
+| virtuals sub-impl: FFactory | [`0xE03DE524de6Ea6e6551F71882bc1ECF31A0eC7D0`](https://testnet.bscscan.com/address/0xE03DE524de6Ea6e6551F71882bc1ECF31A0eC7D0) |
+| virtuals sub-impl: FRouter | [`0xAAa1FE15D1CB60C103d66D3b24A6371379677333`](https://testnet.bscscan.com/address/0xAAa1FE15D1CB60C103d66D3b24A6371379677333) |
+| virtuals sub-impl: Bonding | [`0x104bC5dfb3D55559669083cCF06dA4e140eDB798`](https://testnet.bscscan.com/address/0x104bC5dfb3D55559669083cCF06dA4e140eDB798) |
+
+### Live-инстансы токенов
+
+Каждая строка — реальный токен, развёрнутый через `factory.launch(...)`.
+
+#### `$FLOW` — шаблон dpnm
+
+Токен платформы. Закрытая система, паруется с MockUSDT, феноменальное дерево 3 × 10.
+
+| Компонент | Адрес |
+|-----------|---------|
+| **Токен $FLOW** | [`0x2680b933af7a874d20954b03F38C86891A786511`](https://testnet.bscscan.com/address/0x2680b933af7a874d20954b03F38C86891A786511) |
+| FlowProtocol (точка входа — `activate`/`buy`/`sell`/`extendTree`) | [`0x7F20f8e6e5077a4E11A1A2Fe54449ab55D32f653`](https://testnet.bscscan.com/address/0x7F20f8e6e5077a4E11A1A2Fe54449ab55D32f653) |
+| PhenomenalTree | [`0x9E12238d24Eece9b7575a53b17e36515eaEE0A30`](https://testnet.bscscan.com/address/0x9E12238d24Eece9b7575a53b17e36515eaEE0A30) |
+| FlowGrowToken (GWT) | [`0x40711d364b680ad7e85429bd36d7237E4e960783`](https://testnet.bscscan.com/address/0x40711d364b680ad7e85429bd36d7237E4e960783) |
+| Инстанс шаблона | [`0x6B7700395708a0B2578B5E3d58b895C34a24e959`](https://testnet.bscscan.com/address/0x6B7700395708a0B2578B5E3d58b895C34a24e959) |
+
+**Параметры:**
+- Стартовая цена: `0.1 USDT / FLOW`
+- Дневной лимит: `max(50 USDT, pool * 0.1%)`
+- Лимит дохода: `1:2` на каждой покупке
+- Buy fee: 20% — 10% маркетингу феноменального дерева, 10% удерживается в пуле
+- Sell fee: 10% — 5% в пул, 5% в treasury
+- Активация: `10 USDT` одноразово, окно tree active 30 дней
+- Extend: `10 USDT / 30 дней`, стек до 90 дней
+
+## BSC Mainnet (chainId 56)
+
+<Warning>
+Пока не развёрнуто. Mainnet-деплои гейтятся за завершённым сторонним
+аудитом. ETA зависит от доступности аудиторов.
+</Warning>
+
+## Base Mainnet (chainId 8453)
+
+<Warning>
+Пока не развёрнуто. Phase 2 — мультичейн-роллаут стартует после BSC mainnet.
+</Warning>

@@ -1,0 +1,73 @@
+---
+title: "$FLOW Overview"
+description: "$FLOW is the platform's on-chain ERC20 on BSC, deployed via the dpnm template. 100% USDT-backed, algorithmic price, closed system."
+---
+
+`$FLOW` is the platform's native token. It is a real ERC20 on BSC, deployed at [`0x2680...6511`](https://testnet.bscscan.com/address/0x2680b933af7a874d20954b03F38C86891A786511) on testnet through `factory.launch("dpnm", ...)`. It is **not** a virtual credit — every interaction is an on-chain transaction.
+
+## At a glance
+
+| Property | Value |
+|---|---|
+| Standard | ERC20 (BEP20) on BSC |
+| Pair token | USDT (MockUSDT on testnet) |
+| Price function | `pool_USDT / total_supply` |
+| Backing | 100% USDT in pool |
+| Buy fee | `20%` (10% to phenomenal tree, 10% retained in pool) |
+| Sell fee | `10%` (5% to pool, 5% to treasury) |
+| Daily buy limit | `max(50 USDT, pool * 0.001)` per user per 24h |
+| Income limit | `1:2` on every buy |
+| Tree | 3 branches × 10 levels — 88,572 positions per root |
+| Tree activation | `10 USDT` for 30 days, max 90-day stack |
+| Fee compensation | 1:1 in `GWT` (`FlowGrowToken`) |
+| DEX exit | None — closed system |
+
+## Live contracts (BSC testnet)
+
+| Component | Address |
+|---|---|
+| `$FLOW` ERC20 | [`0x2680...6511`](https://testnet.bscscan.com/address/0x2680b933af7a874d20954b03F38C86891A786511) |
+| `FlowProtocol` (entry point) | [`0x7F20...f653`](https://testnet.bscscan.com/address/0x7F20f8e6e5077a4E11A1A2Fe54449ab55D32f653) |
+| `PhenomenalTree` | [`0x9E12...0A30`](https://testnet.bscscan.com/address/0x9E12238d24Eece9b7575a53b17e36515eaEE0A30) |
+| `FlowGrowToken` (GWT) | [`0x4071...0783`](https://testnet.bscscan.com/address/0x40711d364b680ad7e85429bd36d7237E4e960783) |
+| MockUSDT (test pair) | [`0xD8bD...F04B`](https://testnet.bscscan.com/address/0xD8bDfAAA00496EdE053210f2bcB0702C312FF04B) |
+
+Full list: [Deployments](/en/onchain/deployments).
+
+## Entry points
+
+All user-facing interactions go through the `FlowProtocol` contract. It is the single entry point — never call `$FLOW`, `PhenomenalTree`, or `GWT` directly.
+
+| Method | Purpose |
+|---|---|
+| `activate(referrer)` | First-time tree registration. Costs `10 USDT`, gives 30 days of tree active status. |
+| `buy(usdtAmount)` | Buy `$FLOW`. Subject to daily limit. Adds to your income limit. |
+| `sell(flowAmount)` | Sell `$FLOW`. Burns income limit pro-rata. |
+| `extendTree(months)` | Extend tree activity by `months × 30` days. Triggers tree marketing payouts to ancestors. |
+| `buyIncomeLimitWithGWT(gwtAmount)` | Redeem GWT for additional income limit at `1 GWT = $1.25`. |
+| `claimGWT()` | Claim accumulated GWT compensation from prior fees. |
+
+## Mental model
+
+Every `1 USDT` you spend on a buy:
+
+```
+$0.80 → mint flow tokens for you (your "value at entry")
+$0.10 → split across your phenomenal tree ancestors as marketing
+$0.10 → retained inside the pool (this is what grows price)
++
+your income limit goes up by $2 (1:2 multiplier)
+GWT supply +1 GWT credited to you (1:1 of the fee)
+```
+
+Every `1 USDT` of value you take out on a sell:
+
+```
+$0.95 → arrives in your wallet
+$0.05 → split: $0.025 retained in pool, $0.025 to treasury
++
+your income limit burns down (pro-rata if value > limit, 1:1 if value <= limit)
+GWT supply +0.05 GWT credited to you (1:1 of the fee)
+```
+
+See [Buy / Sell](/en/token/buy-sell) for the full transaction flow, [Income limit](/en/token/income-limit) for the burn math, [Phenomenal tree](/en/token/phenomenal-tree) for ancestor payouts, and [GWT](/en/token/gwt) for redemption.

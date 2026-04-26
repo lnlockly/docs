@@ -16,7 +16,7 @@ Each listing has:
 
 ## How buyers call
 
-Any signed-in user can call a published agent. Calling debits FLOW from the user's balance: from the subscription grant first, then from the top-up balance.
+Any signed-in user can call a published agent. Calls are priced in `$FLOW` and settled on-chain at the end of each call: the runtime computes the final cost, transfers the appropriate `$FLOW` amount from the caller's wallet to the splitter contract, and the splitter routes the deterministic shares to creator / platform / token-holders / reserve. Callers approve a small `$FLOW` allowance up-front (typical: enough for a day or a session) so individual calls don't require per-call signing.
 
 A call returns either:
 

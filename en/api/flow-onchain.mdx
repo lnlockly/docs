@@ -1,0 +1,148 @@
+---
+title: "FLOW Onchain API"
+description: "Read-side queries for the caller's on-chain $FLOW state: balance, daily limit, income limit, tree active status, GWT."
+---
+
+The on-chain `$FLOW` state lives in `FlowProtocol`, `$FLOW`, `PhenomenalTree`, and `FlowGrowToken`. These endpoints aggregate per-user reads from those contracts so a frontend doesn't have to make six RPC calls per page render.
+
+All write operations (`buy`, `sell`, `activate`, `extendTree`, `buyIncomeLimitWithGWT`, `claimGWT`) happen **directly from the user's wallet** — the API does not sign on the user's behalf. These read endpoints are purely informational.
+
+## GET /me/flow-onchain
+
+Aggregate on-chain state for the current authenticated user across all chains where their address has activity. **Auth**: required.
+
+```bash
+curl https://api.agentflow.website/me/flow-onchain \
+  -H "Cookie: af_session=..."
+```
+
+**Response**
+
+```json
+{
+  "address": "0x29c435832C166892C096c055316fd6992479C428",
+  "chains": [
+    {
+      "chainId": 97,
+      "chainName": "BSC Testnet",
+      "flowBalance": "1240.5",
+      "usdtBalance": "850.0",
+      "gwtBalance": "62.5",
+      "currentPrice": "0.1234",
+      "dailyLimitTotal": "50.0",
+      "dailyLimitRemaining": "32.5",
+      "incomeLimitRemaining": "300.0",
+      "lifetimeIncome": "180.0",
+      "treeActiveUntil": 1714125600,
+      "treeActiveDaysLeft": 22,
+      "claimableGWT": "5.0",
+      "tree": {
+        "upline": "0xabc...",
+        "directSlots": ["0xdef...", null, null],
+        "subtreeSize": 7,
+        "subtreeByLevel": [3, 4, 0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    }
+  ]
+}
+```
+
+<ResponseField name="flowBalance" type="string" required>
+  Caller's `$FLOW` balance, decimal-formatted (USDT denomination).
+</ResponseField>
+
+<ResponseField name="dailyLimitRemaining" type="string" required>
+  How much more USDT this address can deposit in the current 24h window.
+</ResponseField>
+
+<ResponseField name="incomeLimitRemaining" type="string" required>
+  Income limit headroom in USDT. Burns down as the address sells; tops up on buys and GWT redemption.
+</ResponseField>
+
+<ResponseField name="treeActiveUntil" type="number" required>
+  Unix timestamp (seconds) when tree active status expires. `0` means never activated.
+</ResponseField>
+
+<ResponseField name="claimableGWT" type="string" required>
+  Pending GWT from descendant fees that haven't been claimed yet. Call `FlowProtocol.claimGWT()` to materialize.
+</ResponseField>
+
+<ResponseField name="tree" type="object" required>
+  Caller's position in the phenomenal tree: upline, three direct slots (each address or `null`), descendant counts.
+</ResponseField>
+
+## GET /me/tree
+
+Detailed view of the caller's subtree. **Auth**: required.
+
+**Query params**
+
+<ParamField path="depth" type="number">
+  How many levels deep to expand. Default `3`, max `10`.
+</ParamField>
+
+```bash
+curl "https://api.agentflow.website/me/tree?depth=5" \
+  -H "Cookie: af_session=..."
+```
+
+**Response**
+
+```json
+{
+  "address": "0x29c435832C166892C096c055316fd6992479C428",
+  "upline": "0xabc...",
+  "subtreeByLevel": [3, 9, 18, 22, 30, 0, 0, 0, 0, 0],
+  "lifetimeEarnedByLevel": ["0.6", "1.8", "5.4", "11.0", "24.0", "0", "0", "0", "0", "0"],
+  "directs": [
+    {
+      "address": "0xdef...",
+      "active": true,
+      "subtreeSize": 4
+    },
+    {
+      "address": "0x123...",
+      "active": false,
+      "subtreeSize": 0
+    },
+    null
+  ]
+}
+```
+
+`lifetimeEarnedByLevel` is denominated in USDT and reflects payouts received from each level since this address activated.
+
+## GET /tokens/:slug/onchain
+
+Aggregate on-chain state for a specific token. Public. Reads from the chain indexer.
+
+For `dpnm` tokens:
+
+```json
+{
+  "template": "dpnm",
+  "instance": "0x2680b933af7a874d20954b03F38C86891A786511",
+  "flowProtocol": "0x7F20f8e6e5077a4E11A1A2Fe54449ab55D32f653",
+  "currentPrice": "0.1234",
+  "poolUsdt": "150000",
+  "totalSupply": "1216000",
+  "totalActivePositions": 73,
+  "totalTreePositions": 89,
+  "lifetimeFeesUsdt": "8420",
+  "lifetimeGwtMinted": "8420"
+}
+```
+
+For `virtuals` tokens, the response is the bonding curve state — see [Tokens API](/en/api/tokens).
+
+## Errors
+
+| Code | When |
+|---|---|
+| `unauthenticated` | Missing or expired session cookie |
+| `chain_unsupported` | `chainId` not configured |
+| `address_not_activated` | Caller has not called `activate()` on the requested chain |
+
+<Note>
+  Off-chain credit balances are gone. The previous `/me/flow-balance` endpoint is removed; this page replaces it. If you need a USD-equivalent estimate of a wallet's `$FLOW` holdings, multiply `flowBalance × currentPrice`.
+</Note>

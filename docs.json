@@ -46,7 +46,8 @@
                 "group": "Concepts",
                 "pages": [
                   "en/concepts/three-pillars",
-                  "en/concepts/flow-credits",
+                  "en/concepts/flow-token",
+                  "en/concepts/closed-system",
                   "en/concepts/bonding-curve",
                   "en/concepts/live-build",
                   "en/concepts/ai-agents"
@@ -83,12 +84,21 @@
                 ]
               },
               {
-                "group": "FLOW Credits",
+                "group": "$FLOW token",
                 "pages": [
-                  "en/flow/overview",
-                  "en/flow/subscriptions",
-                  "en/flow/earn",
-                  "en/flow/payouts"
+                  "en/token/overview",
+                  "en/token/buy-sell",
+                  "en/token/income-limit",
+                  "en/token/phenomenal-tree",
+                  "en/token/extend-tree",
+                  "en/token/gwt"
+                ]
+              },
+              {
+                "group": "Onchain",
+                "pages": [
+                  "en/onchain/overview",
+                  "en/onchain/deployments"
                 ]
               },
               {
@@ -105,6 +115,12 @@
                   "en/guides/earn-flow-as-creator",
                   "en/guides/build-an-app-with-flow"
                 ]
+              },
+              {
+                "group": "Project log",
+                "pages": [
+                  "en/CHANGELOG"
+                ]
               }
             ]
           },
@@ -119,7 +135,7 @@
                   "en/api/marketplace",
                   "en/api/tokens",
                   "en/api/projects",
-                  "en/api/flow-balance",
+                  "en/api/flow-onchain",
                   "en/api/subscriptions",
                   "en/api/webhooks"
                 ]
@@ -156,7 +172,7 @@
               "items": [
                 { "label": "Launchpad", "href": "/en/launchpad/overview" },
                 { "label": "Marketplace", "href": "/en/marketplace/overview" },
-                { "label": "FLOW Credits", "href": "/en/flow/overview" },
+                { "label": "$FLOW token", "href": "/en/token/overview" },
                 { "label": "Wallet", "href": "/en/wallet/setup" }
               ]
             },
@@ -193,7 +209,8 @@
                 "group": "Концепции",
                 "pages": [
                   "ru/concepts/three-pillars",
-                  "ru/concepts/flow-credits",
+                  "ru/concepts/flow-token",
+                  "ru/concepts/closed-system",
                   "ru/concepts/bonding-curve",
                   "ru/concepts/live-build",
                   "ru/concepts/ai-agents"
@@ -230,12 +247,21 @@
                 ]
               },
               {
-                "group": "FLOW-кредиты",
+                "group": "Токен $FLOW",
                 "pages": [
-                  "ru/flow/overview",
-                  "ru/flow/subscriptions",
-                  "ru/flow/earn",
-                  "ru/flow/payouts"
+                  "ru/token/overview",
+                  "ru/token/buy-sell",
+                  "ru/token/income-limit",
+                  "ru/token/phenomenal-tree",
+                  "ru/token/extend-tree",
+                  "ru/token/gwt"
+                ]
+              },
+              {
+                "group": "Ончейн",
+                "pages": [
+                  "ru/onchain/overview",
+                  "ru/onchain/deployments"
                 ]
               },
               {
@@ -252,6 +278,12 @@
                   "ru/guides/earn-flow-as-creator",
                   "ru/guides/build-an-app-with-flow"
                 ]
+              },
+              {
+                "group": "Журнал проекта",
+                "pages": [
+                  "ru/CHANGELOG"
+                ]
               }
             ]
           },
@@ -266,7 +298,7 @@
                   "ru/api/marketplace",
                   "ru/api/tokens",
                   "ru/api/projects",
-                  "ru/api/flow-balance",
+                  "ru/api/flow-onchain",
                   "ru/api/subscriptions",
                   "ru/api/webhooks"
                 ]
@@ -303,7 +335,7 @@
               "items": [
                 { "label": "Launchpad", "href": "/ru/launchpad/overview" },
                 { "label": "Marketplace", "href": "/ru/marketplace/overview" },
-                { "label": "FLOW-кредиты", "href": "/ru/flow/overview" },
+                { "label": "Токен $FLOW", "href": "/ru/token/overview" },
                 { "label": "Кошелёк", "href": "/ru/wallet/setup" }
               ]
             },

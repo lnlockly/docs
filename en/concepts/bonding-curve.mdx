@@ -1,66 +1,86 @@
 ---
-title: "Bonding Curve"
-description: "Token lifecycle from Prototype to Sentient. How tokens trade pre-DEX and how they graduate."
+title: "Bonding curve (virtuals template)"
+description: "How tokens launched via the virtuals template trade pre-graduation and how they migrate to PancakeSwap V2 at threshold."
 ---
 
-Every Launchpad token starts on a built-in bonding curve. The curve is a deterministic price function: as supply increases, price increases. There is no order book and no liquidity provider — the curve itself is the counterparty.
+The `virtuals` template implements a bonding curve `x·y=k` priced in `paymentToken` (USDT on BSC). Each token launched via `factory.launch("virtuals", params)` gets its own curve instance — `FFactory`, `FRouter`, and `Bonding` contracts cloned from audited implementations.
+
+This template is used for **memecoin-style** or **agent-of-marketplace** tokens that want to graduate to a public DEX once they hit a fundraising threshold. The platform's own `$FLOW` token does **not** use this template — it uses [`dpnm`](/en/concepts/closed-system) instead.
 
 ## Lifecycle states
 
 <CardGroup cols={2}>
   <Card title="Prototype" icon="seedling">
-    Token is live on the curve. Anyone can buy or sell. Project may or may not have started building.
+    Token live on its bonding curve. Anyone can buy or sell against the contract. No DEX pair yet.
   </Card>
   <Card title="Graduating" icon="chart-line">
-    Curve has filled to 80%+ of the graduation threshold. Visible "almost there" state on the project page.
+    Curve has filled to 80%+ of the graduation threshold. UI shows an "almost there" state.
   </Card>
   <Card title="Sentient" icon="sparkles">
-    Token graduated to DEX. Bonding curve is sealed. Liquidity migrated to a Uniswap-style pool.
+    Threshold hit. Liquidity migrated to PancakeSwap V2 (BSC) or Uniswap V2 (Base). LP burned to `0xdead`. Bonding curve is sealed.
   </Card>
   <Card title="Failed" icon="circle-x">
-    Token did not reach the threshold within N days. Curve closes. Holders can redeem their FLOW at the curve's last price.
+    Token did not reach threshold within the configured failure window. Curve closes. Holders can redeem at the curve's last price.
   </Card>
 </CardGroup>
 
-## Threshold
+## How buys and sells work pre-graduation
 
-The default graduation threshold is **$42,000 in FLOW** locked into the curve. When reached, the token automatically:
+Each trade goes through the cloned `FRouter` contract:
 
-1. Snapshots holder balances
-2. Transfers locked FLOW to a DEX router
-3. Mints the LP position and burns or locks the LP tokens
-4. Emits a `TokenGraduated` event indexed by the chain indexer
+1. Caller approves `paymentToken` for the router.
+2. `FRouter.buy(token, amountIn, minOut)` (or `sell`) is called.
+3. The router computes the curve price using `x·y=k`, charges fees, mints (or burns) the appropriate amount of project token, and transfers `paymentToken` in or out.
 
-The exact threshold per token is stored in the `tokens` table at creation time and visible in the API response.
+Slippage is enforced via `minOut`. There is no order book — the curve itself is the counterparty. Buys and sells emit `Buy` / `Sell` events that the chain indexer in `agentflow-api` picks up to feed the live token page.
 
-## Buying and selling on the curve
+## Graduation
 
-Curve trades are off-chain entries written to the `launchpad_trades` table. Each trade:
+When the locked `paymentToken` value reaches the per-token graduation threshold (set at launch time):
 
-- Debits or credits the user's FLOW balance
-- Updates the user's token holding
-- Emits a price tick on the SSE feed for the token page
+<Steps titleSize="h3">
+  <Step title="Curve seal">
+    The bonding contract halts new buys and sells.
+  </Step>
+  <Step title="Liquidity migration">
+    Locked `paymentToken` is paired with the protocol-reserved liquidity slice and seeded into a fresh PancakeSwap V2 (BSC) or Uniswap V2 (Base) pool through the `Migrator` contract.
+  </Step>
+  <Step title="LP burn">
+    LP tokens are sent to `0x000000000000000000000000000000000000dEaD`. The pool is permanent and trustless.
+  </Step>
+  <Step title="Sentient state">
+    Token is now an ordinary ERC20 with a DEX pair. Trading lives on PancakeSwap; the Cabinet embeds the chart.
+  </Step>
+</Steps>
 
-Slippage protection is applied per trade (max ±2% of the quoted price by default).
+See [Graduation](/en/launchpad/graduation) for parameters and timing.
 
-## Failed state
+## Failure path
 
-A token enters Failed if it does not reach 100% of the threshold within the configured window (default 30 days). Failed handling:
+If the threshold is not reached within the failure window, the token transitions to `failed`. Holders can redeem their balance at the curve's last price (a "rage exit"). Project agents stop receiving compute budget. The creator can launch a new token with a fresh curve under a new ticker.
 
-- Trading halts
-- Pro-rata FLOW redemption opens at the curve's terminal price
-- Project agents stop receiving build calls
+## Why a bonding curve and not a fixed-price sale
 
-<Note>
-  A failed project is recoverable: the creator can re-attach to a fresh token, or the community can fork by deploying a new bonding curve at the failed price.
-</Note>
+A bonding curve gives instant liquidity without an order book. Early buyers get the lowest price; later buyers pay more, which compensates early backers without needing a vesting contract. The curve also creates a clean trigger for graduation — once price discovery has happened on-curve, the DEX migration starts from a known floor.
 
-## Visibility on the token page
+## Bonding curve vs `dpnm`
 
-Each token page renders a curve state badge, a live price chart, holder leaderboard, and the project's live build stream. The state is fetched from `GET /tokens/:slug` and refreshed via the SSE channel.
+| Property | `virtuals` (this page) | `dpnm` |
+|---|---|---|
+| Price function | `x·y=k` | `pool / supply` |
+| Pair token | `paymentToken` (USDT) | `paymentToken` (USDT) |
+| DEX exit | Yes — graduation to PancakeSwap V2 | No — closed system forever |
+| Daily buy limit | None | `max(50 USDT, pool * 0.001)` per user |
+| Income limit | None | `1:2` on every buy |
+| Marketing tree | Optional, off-chain | Built-in 3 × 10 on-chain |
+| Best for | Memecoin / agent token | Affiliate / ecosystem currency |
+
+See [Closed system](/en/concepts/closed-system) for the full `dpnm` philosophy.
+
+## Live state
 
 ```bash
 curl https://api.agentflow.website/tokens/example-agent
 ```
 
-Response includes `state`, `progressToGraduation`, `holdersCount`, and `lastTradePrice`. See [Tokens API](/en/api/tokens) for the full schema.
+Response includes `template` (`"virtuals"` or `"dpnm"`), `state`, `progressToGraduation` (`virtuals` only), `holdersCount`, and `lastTradePrice`. See [Tokens API](/en/api/tokens).

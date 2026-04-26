@@ -1,56 +1,60 @@
 ---
-title: "Быстрый старт"
-description: "Войдите, получите $FLOW и запустите первого агента меньше чем за пять минут."
+title: "Quickstart"
+description: "Подключите кошелёк, выберите шаблон, разверните первый токен через LaunchpadFactory меньше чем за пять минут."
 ---
 
-Это руководство ведёт от пустого аккаунта до первого вызова агента. Понадобится EVM-кошелёк (MetaMask, Rabby, Trust, OKX) — если его ещё нет, см. [Установка кошелька](/ru/wallet/setup).
+Это руководство проведёт вас от пустого кошелька до токена, развёрнутого в BSC testnet. Понадобится EVM-кошелёк (MetaMask, Rabby или совместимый с RainbowKit) с добавленной сетью BSC testnet.
 
 <Steps titleSize="h3">
-  <Step title="Войдите">
-    Откройте [agentflow.website](https://agentflow.website) и нажмите **Connect Wallet**. AgentFlow использует Sign-In With Ethereum (SIWE): сервер выдаёт nonce, вы его подписываете, сервер выдаёт сессионную cookie. Транзакция в блокчейне и газ для входа не нужны.
+  <Step title="Войдите в систему">
+    Откройте [agentflow.website](https://agentflow.website) и нажмите **Connect Wallet**. AgentFlow использует Sign-In With Ethereum (SIWE): сервер возвращает nonce, вы его подписываете, сервер выдаёт JWT-куку. Для входа ончейн-транзакция не нужна.
 
-    Альтернатива — вход через Telegram-бот [@AIAgentFlow_bot](https://t.me/AIAgentFlow_bot). Бот ставит ту же сессионную cookie.
+    Альтернатива — вход через Telegram-бота [@AIAgentFlow_bot](https://t.me/AIAgentFlow_bot). Бот выдаёт ту же JWT-куку.
   </Step>
-  <Step title="Получите $FLOW">
-    $FLOW — это кредит, на котором работают платные действия в AgentFlow. Получить его можно тремя путями.
+  <Step title="Получите тестовый USDT">
+    Каждый запущенный через фабрику токен паруется с `paymentToken`. В BSC testnet это `MockUSDT` по адресу [`0xD8bD...F04B`](https://testnet.bscscan.com/address/0xD8bDfAAA00496EdE053210f2bcB0702C312FF04B). В Кабинете есть кнопка фаусета — она минтит вам 1000 MockUSDT для тестов. Понадобится также немного тестового BNB на газ — возьмите в любом публичном фаусете BSC testnet.
+  </Step>
+  <Step title="Выберите шаблон">
+    Откройте [Launchpad](https://agentflow.website/launchpad/new). Зарегистрировано два шаблона:
 
-    <CardGroup cols={3}>
-      <Card title="Своп на DEX" icon="arrow-left-right" href="/ru/wallet/buy-flow">
-        После запуска основной сети — обмен BNB или USDT на $FLOW через PancakeSwap.
+    <CardGroup cols={2}>
+      <Card title="virtuals" icon="chart-line">
+        Бондинг-кривая `x·y=k`. До graduation торгует на встроенной кривой, затем ликвидность мигрирует на PancakeSwap V2 (BSC) при достижении порога. LP сжигается на `0xdead`. Подходит для мемкоинов и токенов агентов из маркетплейса.
       </Card>
-      <Card title="Подписка" icon="calendar-check" href="/ru/flow/subscriptions">
-        Plus / Pro / Max — оплата по транзакции в блокчейне, ежемесячный грант $FLOW.
-      </Card>
-      <Card title="P2P" icon="users" href="/ru/p2p/overview">
-        Покупка напрямую у другого пользователя через эскроу-контракт (скоро).
+      <Card title="dpnm" icon="lock">
+        Закрытая система. Алгоритмическая цена `pool / supply`. Дневной лимит покупки, лимит дохода `1:2`, феноменальное дерево 3 ветки × 10 уровней со spillover, компенсация комиссий через GWT. **Никогда не выходит на DEX** — токен живёт внутри контракта протокола навсегда, обеспечен USDT на 100%.
       </Card>
     </CardGroup>
-
-    До запуска основной сети $FLOW — виртуальный кредит. После запуска (план — Q2 2026) он становится ERC-20 на BNB Smart Chain.
   </Step>
-  <Step title="Выберите агента">
-    Откройте [Marketplace](https://agentflow.website/marketplace). На карточке видна цена за вызов в $FLOW, модель монетизации и токен агента, если он есть.
+  <Step title="Разверните">
+    Заполните имя, тикер и параметры шаблона. Кабинет вызывает `factory.launch(template_id, params)` с вашего кошелька. Минимальные прокси-клоны EIP-1167 в сумме стоят меньше `$0.50` в BSC. За один блок токен оказывается в сети.
 
-    Кликните на агента, чтобы открыть страницу, и нажмите **Run** для отправки запроса.
+    См. [Создать токен](/ru/launchpad/create-token) — там полная схема параметров для каждого шаблона.
   </Step>
-  <Step title="Смотрите прямой эфир">
-    Долгие агенты (билдеры проектов на Launchpad, генераторы кода) открывают поток Server-Sent Events. Вы видите шаги плана, вызовы инструментов и промежуточные ответы по мере работы агента.
+  <Step title="(Опционально) купите $FLOW">
+    Собственный токен платформы `$FLOW` — это инстанс шаблона `dpnm`. Купите позицию, чтобы протестировать поток buy/sell с дневным лимитом и лимитом дохода:
 
-    Стоимость списывается с баланса $FLOW после расчёта вызова. Если итог превышает зарезервированную сумму — разница списывается с баланса или из подписки.
+    1. Дайте `FlowProtocol` разрешение тратить ваш USDT.
+    2. Вызовите `FlowProtocol.activate(referrer)` с `10 USDT` — это регистрация в феноменальном дереве.
+    3. Вызовите `FlowProtocol.buy(amount)`, чтобы приобрести `$FLOW`.
+
+    Адреса `$FLOW` и `FlowProtocol` — на странице [Деплой](/ru/onchain/deployments).
   </Step>
 </Steps>
-
-<Note>
-  Подписки уменьшают стоимость вызова через ежемесячные гранты $FLOW. Подробности тарифов — в [Подписках](/ru/flow/subscriptions).
-</Note>
 
 ## Дальше
 
 <CardGroup cols={2}>
-  <Card title="Запустить токен" icon="rocket" href="/ru/guides/launch-your-first-token">
-    Создайте проект на Launchpad за три шага.
+  <Card title="Экономика закрытой системы" icon="lock" href="/ru/concepts/closed-system">
+    Почему цена `dpnm` только растёт, как работает лимит дохода и откуда берётся компенсация GWT.
   </Card>
-  <Card title="Опубликовать агента" icon="upload" href="/ru/guides/publish-your-agent">
-    Разместите агента на Marketplace и начните зарабатывать.
+  <Card title="Бондинг-кривая" icon="chart-line" href="/ru/concepts/bonding-curve">
+    Как работают торги по `virtuals` до graduation и что происходит при достижении порога.
+  </Card>
+  <Card title="Феноменальное дерево" icon="git-fork" href="/ru/token/phenomenal-tree">
+    Как платит маркетинговое дерево 3 × 10 — и почему вы зарабатываете, даже если никого не приглашаете.
+  </Card>
+  <Card title="Деплой в ончейне" icon="link" href="/ru/onchain/deployments">
+    Живые адреса контрактов на каждой поддерживаемой сети. Источник истины.
   </Card>
 </CardGroup>

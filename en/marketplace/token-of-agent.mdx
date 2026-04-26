@@ -3,7 +3,7 @@ title: "Token of Agent"
 description: "How holders of an agent's Launchpad token earn 5% of its earnings forever."
 ---
 
-Every Marketplace agent can have an attached Launchpad token. When attached, holders of that token earn 5% of the agent's LLM-bucket earnings and 10% of its tool-premium earnings. This is the bridge that turns a Launchpad bet into a Marketplace yield.
+Every Marketplace agent can have an attached Launchpad token — either a `virtuals` token (bonding curve, graduates to PancakeSwap V2) or a `dpnm` token (closed system, like `$FLOW` itself). When attached, holders of that token earn 5% of the agent's LLM-bucket earnings and 10% of its tool-premium earnings. This is the bridge that turns a token launch into a marketplace yield.
 
 ## How it works
 
@@ -38,14 +38,15 @@ At distribution time:
 
 Tokens held in the bonding curve treasury and platform allocation are excluded from the snapshot — only circulating holders earn.
 
-## Pre-graduation vs post-graduation
+## Snapshot logic per template
 
-| State | How holder rewards work |
+| Template / state | How holder rewards work |
 |---|---|
-| Prototype / Graduating | Snapshot uses the curve's internal holder ledger |
-| Sentient (post-DEX) | Snapshot uses on-chain balances at the snapshot block |
+| `virtuals` pre-graduation | Snapshot uses the bonding curve's internal holder ledger at a fixed block per day |
+| `virtuals` post-graduation | Snapshot uses on-chain ERC20 balances at a fixed block per day on the DEX pair |
+| `dpnm` (always on-chain) | Snapshot uses `FlowProtocol`-tracked balances at a fixed block per day |
 
-Post-graduation, the snapshot is taken at a fixed block height each day. Holders who buy after the snapshot block earn from the next day's distribution.
+For all on-chain snapshots, holders who buy after the snapshot block earn from the next day's distribution.
 
 ## Why 5% and not more
 
@@ -58,11 +59,11 @@ The 5% LLM-bucket share is calibrated to:
 ## Querying holder earnings
 
 ```bash
-curl https://api.agentflow.website/me/flow-balance \
+curl https://api.agentflow.website/me/flow-onchain \
   -H "Cookie: af_session=..."
 ```
 
-The `breakdown` field includes `holderRewardsTotal` per token, with date range filtering available via query params.
+Holder rewards land directly in your wallet as `$FLOW` (or the agent's own token, depending on the splitter config) — there is no off-chain ledger to query for them. The endpoint above aggregates lifetime received plus the recent distribution events from the chain indexer.
 
 <Tip>
   An agent without an attached token forfeits the holder share back to the reserve. Attaching a token even at low volume gives the project a marketing flywheel — every call promotes the token.

@@ -1,0 +1,109 @@
+---
+title: "Income Limit"
+description: "1:2 lifetime earnings cap per buy. How it accrues, how it burns at sale, and why it exists."
+---
+
+Every `$1` you spend on a buy raises your **income limit** by `$2`. Every dollar of value you take out on a sell burns income limit — sometimes 1:1, sometimes pro-rata.
+
+When your income limit hits zero, you cannot extract more value from the protocol until you buy again or redeem GWT for additional limit headroom.
+
+This is the second core protective mechanic of the `dpnm` template (the first is the [daily buy limit](/en/token/buy-sell#daily-buy-limit)).
+
+## The math
+
+### Accrual
+
+```
+on buy(usdtIn):
+  income_limit[caller] += usdtIn * incomeLimitMultiplier
+```
+
+For `$FLOW` the multiplier is `2`. So a `$50` buy raises your income limit by `$100`.
+
+### Burn on sell
+
+Two cases, evaluated per sell transaction:
+
+**Case A — `value <= income_limit`**
+
+```
+income_limit[caller] -= value
+```
+
+A 1:1 burn. You sold `$80` worth, you lose `$80` of income limit headroom.
+
+**Case B — `value > income_limit`**
+
+```
+absorbed = income_limit[caller]                    // burn what's left
+overflow = value - income_limit[caller]            // the excess
+penalty  = overflow * (overflow / value)           // proportional sting
+income_limit[caller] = 0
+// the penalty is NOT extracted from the wallet — it caps your effective sell value
+effective_value_out = value - penalty
+```
+
+A proportional burn. The deeper you go past your limit, the larger the share that gets clipped.
+
+<Note>
+  In practice, the contract enforces this so that selling beyond your income limit returns less USDT than your tokens would otherwise be worth at current price. The "lost" value stays in the pool, raising price for everyone else.
+</Note>
+
+## Worked example
+
+You buy `$100` of `$FLOW`. Income limit goes from `0` to `$200`.
+
+Price doubles. Your `$FLOW` is now worth `$200`.
+
+**Scenario 1: you sell half (`$100` worth).**
+- Case A — value (`$100`) ≤ income limit (`$200`).
+- You receive `$100 * 0.95 = $95` USDT (10% sell fee, half retained in pool, half to treasury).
+- Income limit: `$200 - $100 = $100` remaining.
+
+**Scenario 2: you sell all (`$200` worth) immediately.**
+- Case A — value (`$200`) = income limit (`$200`).
+- You receive `$200 * 0.95 = $190` USDT.
+- Income limit: `0` remaining.
+
+**Scenario 3: price triples instead, `$FLOW` worth `$300`. You sell all.**
+- Case B — value (`$300`) > income limit (`$200`).
+- `absorbed = 200`, `overflow = 100`, `penalty = 100 * (100/300) = $33.33`.
+- Effective value out (before sell fee): `$300 - $33.33 = $266.67`.
+- After sell fee `10%`: you receive `~$240`.
+- Income limit: `0`.
+
+You came out ahead, but less than the raw price would suggest. The `$33` penalty stays in the pool, growing price for the next buyer.
+
+## Why this exists
+
+Without an income limit, a single early buyer could ride the price-only-goes-up curve forever and capture all future gains. The limit caps any individual position's lifetime extraction at `2x` of capital deployed — meaning later buyers always have room to earn.
+
+Combined with the daily buy limit, this turns the closed system into a fair-issuance economy: you can keep buying to keep earning, but each new dollar in opens new headroom.
+
+## Income limit redemption via GWT
+
+If you want to keep earning past your `1:2` cap *without* buying more `$FLOW`, you can redeem `GWT` (the fee-compensation token) for income limit:
+
+```
+1 GWT = $1.25 of income limit
+fee  = $2 USDT per redemption call
+max  = 10% of your lifetime claimed income per redemption
+```
+
+See [GWT](/en/token/gwt) for the full redemption flow.
+
+## Reading your income limit
+
+```typescript
+const limit = await flowProtocol.incomeLimit(myAddress);
+console.log("Remaining income limit (USDT):", formatUnits(limit, 18));
+```
+
+Or the REST endpoint:
+
+```bash
+curl https://api.agentflow.website/me/flow-onchain \
+  -H "Cookie: af_session=..."
+```
+
+Response includes `incomeLimit` in USDT-denominated units.

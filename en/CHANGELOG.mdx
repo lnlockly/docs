@@ -1,0 +1,98 @@
+---
+title: 'Changelog'
+description: 'Running log of every shipped change to AgentFlow — contracts, services, and product'
+---
+
+<Note>
+This page is updated **every time something ships** to testnet or production.
+Each entry links to the live address, commit, or PR so you can verify.
+</Note>
+
+## 2026-04-26
+
+### `$FLOW` deployed via factory on BSC testnet
+
+The platform token is live as an instance of the `dpnm` template. Every
+future dPNM-style token will be deployed the same way: one
+`factory.launch("dpnm", params)` call.
+
+- **$FLOW token:** [`0x2680b933af7a874d20954b03F38C86891A786511`](https://testnet.bscscan.com/address/0x2680b933af7a874d20954b03F38C86891A786511)
+- **FlowProtocol** (entry point for `activate`/`buy`/`sell`/`extendTree`): [`0x7F20f8e6e5077a4E11A1A2Fe54449ab55D32f653`](https://testnet.bscscan.com/address/0x7F20f8e6e5077a4E11A1A2Fe54449ab55D32f653)
+- Full address list → [Deployments](/en/onchain/deployments)
+
+### LaunchpadFactory + template registry shipped
+
+Unified factory pattern replaces the per-token deploy scripts. Two
+templates registered:
+
+- `virtuals` — bonding curve `x·y=k` → DEX graduation (for memecoin / agent tokens)
+- `dpnm` — closed system, 100% backing, daily limit, income limit, 3×10 phenomenal tree (for `$FLOW` and any other MLM-style token)
+
+Architecture allows third-party clones — anyone can launch their own
+dpnm-style token without writing a line of Solidity. Cost on BSC: ~`$0.50`
+total per token via EIP-1167 minimal proxy clones.
+
+**Tests:** 35/35 passing across factory + flow suites.
+
+### Smart contract audit-prep documents
+
+Threat model, 30 invariants, 15 attack scenarios, scope, reproduction
+runbook, and per-contract compliance checklist for the `$FLOW` / dPNM
+contracts. Stored in the private contracts repo at `agentflow-contracts/audit-flow/`.
+
+Audit path planned: **Spearbit private** (`$120k–180k`) → **Code4rena public**
+(`$80k–120k` + `$20k` judging) → **Immunefi bounty** (`$500k` pool, 90 days
+post-launch).
+
+### Backend chain indexer
+
+`agentflow-api` now runs a per-chain viem poller that listens for `Buy`,
+`Sell`, `Graduated`, `ReferralRewardAccrued` events and writes them to
+Postgres (`swap_events`, `referral_accruals`). Disabled by default —
+flip `CHAIN_INDEXER_ENABLED=1` in env once factory addresses are ready.
+
+Migration `0014_chain_indexer.sql` extends `tokens` with chain metadata
+and adds the indexer state table.
+
+## Earlier
+
+### Marketplace v3 + Agent Detail v3
+
+`/marketplace` now leads with a featured row (top 6 agents by call
+volume) plus a 4-column grid of all live agents. No fake mock cards.
+Agent detail rewritten in REPPO-style with tabs (Overview / Capabilities
+/ Earnings / Reviews) plus a sticky "Try this agent" right rail.
+
+### Live build view (v0.dev-style)
+
+`/live/:slug` is a 3-pane workspace: project sidebar + tabbed content
+area (**Preview** / Code / Terminal / Network). The Preview pane
+adapts to the project's `kind` — web app gets an iframe dashboard,
+account farm gets a 100-dot canvas health grid, parser gets a
+real-time bar chart, and so on.
+
+### Token launchpad UI (multi-chain)
+
+`/launch` and `/launch/:slug` ship with a chain selector (BSC / Base),
+AI-assist that generates ticker / name / description / logo from a
+1-sentence brief, RainbowKit transaction flow, and 4-step progress modal.
+
+### AI Guide assistant
+
+Cloudflare-style sidebar that walks users through the platform.
+Tool-use API: `navigate`, `highlight`, `scroll_to`, `fill` (with
+confirmation), `start_tour`, `open_external`. Desktop right-panel,
+mobile bottom-sheet, Telegram MiniApp with native BackButton.
+
+### Voice mode in every chat
+
+Press-and-hold mic button + opt-in TTS toggle in ChatInline and
+GuidePanel. Web Speech API where supported, Whisper proxy fallback
+on iOS Safari + Firefox.
+
+### FLOW credits + payouts
+
+Subscriptions (Plus / Pro / Max → 20 / 100 / 200 FLOW monthly grant),
+CryptoBot + Platega + BSC USDT BEP20 onramps, marketplace earnings
+split (50 / 20 / 20 / 5 / 5 LLM bucket; 80 / 10 / 10 tool bucket),
+creator withdrawal flow with admin approval gate.

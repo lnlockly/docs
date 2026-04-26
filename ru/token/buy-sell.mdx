@@ -1,0 +1,119 @@
+---
+title: "Buy & Sell $FLOW"
+description: "Дневной лимит, структура комиссий и ончейн-флоу для покупки и продажи через FlowProtocol."
+---
+
+Каждая покупка и продажа `$FLOW` — это ончейн-транзакция через контракт `FlowProtocol`. Ордербука и DEX-пары нет — `FlowProtocol` единственный контрагент.
+
+## До запуска: активация
+
+Перед покупкой `$FLOW` ваш адрес должен быть **активирован** в феноменальном дереве. Активация стоит `10 USDT` и делается одним вызовом:
+
+```typescript
+// Сначала approve USDT
+await usdt.approve(flowProtocol.address, parseUnits("10", 18));
+
+// Активация с указанием реферера (или 0x0, если реферера нет)
+await flowProtocol.activate(referrerAddress);
+```
+
+После `activate` у вас есть **30 дней активного статуса в дереве** — это значит, что вы можете зарабатывать с покупок и extend ваших потомков. Чтобы оставаться активным дольше 30 дней, вызовите [`extendTree`](/ru/token/extend-tree).
+
+Покупать `$FLOW` можно и после того, как активный статус истёк, но маркетинговые награды дерева перестанут начисляться, пока вы не продлите.
+
+## Дневной лимит покупки
+
+Каждый пользователь может вложить максимум:
+
+```
+dailyLimit = max(50 USDT, pool_USDT * 0.001)
+```
+
+в скользящем 24-часовом окне. С пулом `$1M` лимит — `$1000/день` на адрес. Лимит пополняется на основе продаж за последние 48 часов: если кто-то продал, доступная ёмкость для покупок открывается пропорционально.
+
+Лимит проверяется внутри `FlowProtocol.buy(...)`. Покупка, которая бы его превысила, ревертит с `DailyLimitExceeded`.
+
+<Note>
+  Лимит существует, чтобы закрытая система оставалась честной. Если бы кит мог одной транзакцией внести бесконечный USDT, он мог бы фронтранить всех будущих покупателей и забрать рост протокола в свой собственный лимит дохода.
+</Note>
+
+## Buy-флоу
+
+```typescript
+// Approve
+const amount = parseUnits("100", 18); // 100 USDT
+await usdt.approve(flowProtocol.address, amount);
+
+// Buy
+const tx = await flowProtocol.buy(amount);
+const receipt = await tx.wait();
+```
+
+Что происходит в контракте:
+
+| Шаг | Эффект |
+|---|---|
+| Снять `100 USDT` с caller | баланс уходит в `FlowProtocol` |
+| Посчитать `flowOut = (100 * 0.80) / current_price` | `80%` от USDT по текущей цене |
+| Минт `flowOut` для caller | total supply растёт |
+| `pool += 90 USDT` | пул растёт на `100 - 10` (10 ушло в дерево) |
+| Распределить `10 USDT` предкам в феноменальном дереве | по уровням, см. [Феноменальное дерево](/ru/token/phenomenal-tree) |
+| Лимит дохода caller `+= 200 USDT` | (`100 * 2` — мультипликатор `1:2`) |
+| Минт `20 GWT` для caller | (`1:1` от общей комиссии `20 USDT`) |
+
+## Sell-флоу
+
+```typescript
+const flowAmount = parseUnits("500", 18); // 500 FLOW
+const tx = await flowProtocol.sell(flowAmount);
+```
+
+Что происходит в контракте:
+
+| Шаг | Эффект |
+|---|---|
+| Посчитать `value = flowAmount * current_price` | например, `$200` |
+| Применить sell fee `10%` | `$20` комиссия, `$180` уходит caller |
+| Из комиссии: `$10` удерживается в пуле, `$10` в treasury | пул продолжает понемногу расти |
+| Сжечь `flowAmount` `$FLOW` у caller | total supply падает |
+| Минт `2 GWT` для caller | (`1:1` от `$20` комиссии в долларах) |
+| Сжечь лимит дохода | см. [Лимит дохода](/ru/token/income-limit) — кейсы `<=` vs `>` |
+
+## Почему цена продолжает расти
+
+После покупки: `pool += 90`, `supply += 80/price`. Соотношение растёт.
+После продажи: `pool -= 180`, `supply -= flowAmount`. Удержание `5%` в пуле означает, что соотношение всё равно подтягивается вверх — продажи извлекают пропорционально меньше, чем вкладывают.
+
+Это и есть инвариант закрытой системы. См. [Закрытая система](/ru/concepts/closed-system) — там формальная формулировка.
+
+## Slippage и реверты
+
+Buy и sell не принимают параметр `minOut` — цена на исполнении равна цене блока, точка. Если пул сдвинется между отправкой и тем, как блок попадёт в чейн, ваша эффективная цена тоже сдвинется. Для крупных сделок это обычно несущественно, потому что дневные лимиты ограничивают размер одной сделки.
+
+Частые причины реверта:
+
+| Ошибка | Значение |
+|---|---|
+| `NotActivated` | Caller ещё не вызвал `activate()` |
+| `DailyLimitExceeded` | Покупка превысила бы `dailyLimit` в текущем 24-часовом окне |
+| `InsufficientBalance` | Sell-amount больше баланса `$FLOW` у caller |
+| `IncomeLimitExhausted` | (Граничный кейс) лимит дохода caller не может поглотить burn 1:1 |
+
+## Чтение состояния
+
+```typescript
+const price = await flowProtocol.currentPrice();             // pool / supply
+const myDailyRemaining = await flowProtocol.dailyRemaining(me);
+const myIncomeLimit = await flowProtocol.incomeLimit(me);
+const myTreeActiveUntil = await flowProtocol.treeActiveUntil(me);
+const myGwtClaimable = await flowProtocol.claimableGWT(me);
+```
+
+Или через API:
+
+```bash
+curl https://api.agentflow.website/me/flow-onchain \
+  -H "Cookie: af_session=..."
+```
+
+См. [FLOW Onchain API](/ru/api/flow-onchain).

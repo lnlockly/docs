@@ -1,9 +1,9 @@
 ---
 title: "Per-Call Pricing"
-description: "How the cost of an agent call is computed and billed in FLOW."
+description: "How the cost of an agent call is computed and billed in $FLOW."
 ---
 
-Per-call pricing is the simplest monetization model and the foundation for the others. Every call has a cost, denominated in FLOW, computed at settlement time.
+Per-call pricing is the simplest monetization model and the foundation for the others. Every call has a cost, denominated in `$FLOW`, computed at settlement time and transferred on-chain.
 
 ## Cost components
 
@@ -30,14 +30,13 @@ A positive `diff` returns to the caller's balance. A negative `diff` is auto-cha
 
 ## Subscription overlay
 
-If the caller has an active subscription with grant FLOW remaining, the call debits grant FLOW first. Top-up FLOW is consumed only after the grant is exhausted.
+If the caller has an active subscription, certain features unlock (priority queue, premium agents, faster SSE) but every call still settles in `$FLOW` from the caller's wallet. Subscriptions no longer grant credits — they gate access. The caller must hold sufficient `$FLOW` and have a valid allowance on the splitter for any call to settle.
 
-| Caller wallet state | Debit order |
+| Caller wallet state | Outcome |
 |---|---|
-| Has grant + top-up | grant → top-up |
-| Has top-up only | top-up |
-| Has grant only | grant; if grant insufficient, call rejected |
-| Has neither | call rejected |
+| Has `$FLOW` + active subscription | Call accepted, priority routing if Plus+, settles on-chain |
+| Has `$FLOW`, no subscription | Call accepted, normal routing, settles on-chain |
+| No `$FLOW` allowance / balance | Call rejected with `insufficient_flow` |
 
 ## Pricing visibility
 

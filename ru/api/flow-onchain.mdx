@@ -1,0 +1,148 @@
+---
+title: "FLOW Onchain API"
+description: "Read-эндпоинты для ончейн-состояния `$FLOW` у caller: баланс, дневной лимит, лимит дохода, статус активности дерева, GWT."
+---
+
+Ончейн-состояние `$FLOW` живёт в `FlowProtocol`, `$FLOW`, `PhenomenalTree` и `FlowGrowToken`. Эти эндпоинты агрегируют per-user чтения из этих контрактов, чтобы фронтенду не приходилось делать шесть RPC-вызовов на рендер страницы.
+
+Все write-операции (`buy`, `sell`, `activate`, `extendTree`, `buyIncomeLimitWithGWT`, `claimGWT`) идут **прямо с кошелька пользователя** — API не подписывает за пользователя. Эти read-эндпоинты чисто информационные.
+
+## GET /me/flow-onchain
+
+Агрегированное ончейн-состояние для текущего авторизованного пользователя по всем сетям, где у его адреса есть активность. **Auth**: нужен.
+
+```bash
+curl https://api.agentflow.website/me/flow-onchain \
+  -H "Cookie: af_session=..."
+```
+
+**Ответ**
+
+```json
+{
+  "address": "0x29c435832C166892C096c055316fd6992479C428",
+  "chains": [
+    {
+      "chainId": 97,
+      "chainName": "BSC Testnet",
+      "flowBalance": "1240.5",
+      "usdtBalance": "850.0",
+      "gwtBalance": "62.5",
+      "currentPrice": "0.1234",
+      "dailyLimitTotal": "50.0",
+      "dailyLimitRemaining": "32.5",
+      "incomeLimitRemaining": "300.0",
+      "lifetimeIncome": "180.0",
+      "treeActiveUntil": 1714125600,
+      "treeActiveDaysLeft": 22,
+      "claimableGWT": "5.0",
+      "tree": {
+        "upline": "0xabc...",
+        "directSlots": ["0xdef...", null, null],
+        "subtreeSize": 7,
+        "subtreeByLevel": [3, 4, 0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    }
+  ]
+}
+```
+
+<ResponseField name="flowBalance" type="string" required>
+  Баланс `$FLOW` у caller, в десятичном формате (USDT-номинал).
+</ResponseField>
+
+<ResponseField name="dailyLimitRemaining" type="string" required>
+  Сколько ещё USDT этот адрес может вложить в текущем 24-часовом окне.
+</ResponseField>
+
+<ResponseField name="incomeLimitRemaining" type="string" required>
+  Headroom лимита дохода в USDT. Сжигается при продажах; пополняется на покупках и через redemption GWT.
+</ResponseField>
+
+<ResponseField name="treeActiveUntil" type="number" required>
+  Unix-timestamp (секунды), когда истекает активность в дереве. `0` — никогда не активирован.
+</ResponseField>
+
+<ResponseField name="claimableGWT" type="string" required>
+  Pending GWT с комиссий потомков, который ещё не заклеймен. Вызовите `FlowProtocol.claimGWT()`, чтобы материализовать.
+</ResponseField>
+
+<ResponseField name="tree" type="object" required>
+  Позиция caller в феноменальном дереве: апплайн, три прямых слота (адрес или `null`), счётчики потомков.
+</ResponseField>
+
+## GET /me/tree
+
+Детальный вид поддерева caller. **Auth**: нужен.
+
+**Query params**
+
+<ParamField path="depth" type="number">
+  На сколько уровней раскрывать. Дефолт `3`, max `10`.
+</ParamField>
+
+```bash
+curl "https://api.agentflow.website/me/tree?depth=5" \
+  -H "Cookie: af_session=..."
+```
+
+**Ответ**
+
+```json
+{
+  "address": "0x29c435832C166892C096c055316fd6992479C428",
+  "upline": "0xabc...",
+  "subtreeByLevel": [3, 9, 18, 22, 30, 0, 0, 0, 0, 0],
+  "lifetimeEarnedByLevel": ["0.6", "1.8", "5.4", "11.0", "24.0", "0", "0", "0", "0", "0"],
+  "directs": [
+    {
+      "address": "0xdef...",
+      "active": true,
+      "subtreeSize": 4
+    },
+    {
+      "address": "0x123...",
+      "active": false,
+      "subtreeSize": 0
+    },
+    null
+  ]
+}
+```
+
+`lifetimeEarnedByLevel` в номинале USDT и отражает выплаты с каждого уровня с момента активации этого адреса.
+
+## GET /tokens/:slug/onchain
+
+Агрегированное ончейн-состояние для конкретного токена. Public. Читает из чейн-индексера.
+
+Для `dpnm`-токенов:
+
+```json
+{
+  "template": "dpnm",
+  "instance": "0x2680b933af7a874d20954b03F38C86891A786511",
+  "flowProtocol": "0x7F20f8e6e5077a4E11A1A2Fe54449ab55D32f653",
+  "currentPrice": "0.1234",
+  "poolUsdt": "150000",
+  "totalSupply": "1216000",
+  "totalActivePositions": 73,
+  "totalTreePositions": 89,
+  "lifetimeFeesUsdt": "8420",
+  "lifetimeGwtMinted": "8420"
+}
+```
+
+Для `virtuals`-токенов ответ — состояние бондинг-кривой, см. [Tokens API](/ru/api/tokens).
+
+## Errors
+
+| Code | When |
+|---|---|
+| `unauthenticated` | Сессионная кука отсутствует или истекла |
+| `chain_unsupported` | `chainId` не сконфигурирован |
+| `address_not_activated` | Caller не вызвал `activate()` на запрошенной сети |
+
+<Note>
+  Off-chain балансы кредитов исчезли. Прежний эндпоинт `/me/flow-balance` удалён; эта страница его заменяет. Если нужен USD-эквивалент `$FLOW`-холдингов кошелька, умножайте `flowBalance × currentPrice`.
+</Note>

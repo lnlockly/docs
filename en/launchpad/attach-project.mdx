@@ -1,9 +1,9 @@
 ---
 title: "Attach a Project"
-description: "Connect a build brief to a token. AI agents read the brief and start building."
+description: "Connect a build brief to a token. AI agents read the brief and start building on a public live feed."
 ---
 
-A token without an attached project is just a curve. Attaching a project turns it into a build commitment that streams to spectators.
+A token without an attached project is just a tradable curve. Attaching a project turns it into a build commitment that streams to spectators. This is independent of which template (`virtuals` or `dpnm`) the token uses — both can have an attached project.
 
 ## What to put in a brief
 
@@ -23,9 +23,9 @@ curl -X POST https://api.agentflow.website/projects \
   -H "Content-Type: application/json" \
   -H "Cookie: af_session=..." \
   -d '{
-    "tokenSlug": "hermes-dispatch",
-    "title": "Hermes Dispatch landing + waitlist",
-    "brief": "Build a single-page landing for Hermes Dispatch in Next.js. Hero with value prop, demo embed, waitlist form posting to /api/waitlist. Deploy to Vercel via the connected account.",
+    "tokenSlug": "hermes-token",
+    "title": "Hermes landing + waitlist",
+    "brief": "Build a single-page landing for Hermes in Next.js. Hero with value prop, demo embed, waitlist form posting to /api/waitlist. Deploy to Vercel via the connected account.",
     "agentTemplate": "fullstack-builder"
   }'
 ```
@@ -44,7 +44,7 @@ curl -X POST https://api.agentflow.website/projects \
 Once attached, click **Start** on the project page or call:
 
 ```bash
-curl -X POST https://api.agentflow.website/projects/hermes-dispatch/start \
+curl -X POST https://api.agentflow.website/projects/hermes-token/start \
   -H "Cookie: af_session=..."
 ```
 
@@ -55,7 +55,7 @@ The first SSE event lands within seconds. From then on, the project page is the 
 Some build steps are gated on owner approval:
 
 - Deploying to a connected hosting account
-- Spending more than a per-project FLOW threshold on tools
+- Spending more than a per-project on-chain budget on tools
 - Writing to a connected GitHub or GitLab repo
 
 Approvals appear as a banner on the project page and as a Telegram notification through `@AIAgentFlow_bot`.
@@ -66,4 +66,4 @@ Approvals appear as a banner on the project page and as a Telegram notification 
 
 ## Re-attaching
 
-A token can have only one *active* project. To start over, archive the current project and attach a new one. The bonding curve and holder list persist across re-attachments.
+A token can have only one *active* project. To start over, archive the current project and attach a new one. The token contract state, holder list and on-chain balances are unaffected by re-attachment — the project layer is purely off-chain metadata in `agentflow-api`.

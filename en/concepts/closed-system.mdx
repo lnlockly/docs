@@ -1,0 +1,68 @@
+---
+title: "Closed system (dPNM)"
+description: "Why the dpnm template makes price only go up, and the constraints that come with that guarantee."
+---
+
+The `dpnm` template implements a **closed-system** token economy. Every USDT that enters the pool stays in the pool until somebody sells; sells are subject to fees that retain part of their value in the pool; the contract is the only place the token can be traded. There is no DEX pair, no migration step, no external liquidity provider.
+
+This guarantees one thing other token models cannot: **price is monotonically non-decreasing under any single trade**. A buy raises `pool / supply`. A sell — even after fees — does not bring `pool / supply` below where it was before the prior buy.
+
+## The core invariant
+
+```
+price = pool_USDT / total_supply
+```
+
+After a buy of `X` USDT:
+
+```
+pool         += X * 0.90          (10% goes to phenomenal tree, 10% retained in pool but not added to "free" balance — see below)
+total_supply += tokens_minted
+```
+
+After a sell of `T` tokens at price `p`:
+
+```
+value_out     = T * p
+pool         -= value_out * 0.90  (10% sell fee retained: 5% pool, 5% treasury)
+total_supply -= T
+```
+
+In both cases, the ratio `pool / supply` either rises or stays unchanged. There is no path that lowers it.
+
+<Note>
+  The exact split of buy fee is `10%` to phenomenal-tree marketing and `10%` retained in the pool. The pool-retained portion is what makes price *grow*, not just stay flat.
+</Note>
+
+## What you give up
+
+Three things, in order of practical impact:
+
+1. **Daily buy limit.** Each user can deposit at most `max(50 USDT, pool * 0.001)` per 24 hours. With a `$1M` pool, that's `$1000/day`. The limit refills from sells in the prior 48h. This prevents whale accumulation and protects later buyers from being priced out instantly.
+2. **Income limit `1:2`.** A buy of `$50` caps your *lifetime* earnings on that buy at `$100`. Earnings burn against the limit at sale time. See [Income limit](/en/token/income-limit) for the burn math.
+3. **No DEX exit.** You cannot swap `$FLOW` for `USDT` on PancakeSwap. The only way out is `FlowProtocol.sell()`, subject to the sell fee.
+
+## When `dpnm` is the right pick
+
+- **Affiliate / referral economies.** The 3 × 10 phenomenal tree turns the token into the settlement currency of an MLM-style network. See [Phenomenal tree](/en/token/phenomenal-tree).
+- **Long-running ecosystem tokens.** No surprise dump from a whale who entered early.
+- **Closed-loop vendor payments.** A creator who pays AI agents, infrastructure or contractors in `$FLOW` benefits from the price floor holding.
+
+## When to pick `virtuals` instead
+
+If your goal is a memecoin, an agent's speculative token, or anything where you *want* a DEX exit and external liquidity for distribution, the `virtuals` template is the right fit. See [Bonding curve](/en/concepts/bonding-curve).
+
+## Closed system on the chain
+
+`$FLOW` is the canonical `dpnm` instance. Anyone can deploy another `dpnm`-template token via `factory.launch("dpnm", params)` — the factory clones the audited implementation as an EIP-1167 minimal proxy for under `$0.50` of gas on BSC.
+
+Live addresses on testnet:
+
+| Component | Address |
+|---|---|
+| `$FLOW` token | [`0x2680...6511`](https://testnet.bscscan.com/address/0x2680b933af7a874d20954b03F38C86891A786511) |
+| `FlowProtocol` (entry point) | [`0x7F20...f653`](https://testnet.bscscan.com/address/0x7F20f8e6e5077a4E11A1A2Fe54449ab55D32f653) |
+| `PhenomenalTree` | [`0x9E12...0A30`](https://testnet.bscscan.com/address/0x9E12238d24Eece9b7575a53b17e36515eaEE0A30) |
+| `FlowGrowToken` (GWT) | [`0x4071...0783`](https://testnet.bscscan.com/address/0x40711d364b680ad7e85429bd36d7237E4e960783) |
+
+Full list and chain coverage on [Deployments](/en/onchain/deployments).

@@ -1,57 +1,96 @@
 ---
 title: "Launchpad Overview"
-description: "Tokenized launch for AI projects. Launch a token, attach a brief, watch agents build."
+description: "factory.launch(template, params) — one second from idea to a live token on BSC."
 ---
 
-The Launchpad is AgentFlow's surface for *origination* — for creating a project before it exists. The flow compresses funding, build, and exit into one continuous loop powered by AI agents and a bonding curve.
+The Launchpad is AgentFlow's surface for *origination*. It is fundamentally a **factory** of audited smart contract templates. A creator picks a template, fills its parameters, and the on-chain `LaunchpadFactory` deploys a fresh token via EIP-1167 minimal proxy clone for under `$0.50` of gas on BSC.
 
-## The loop
+## The factory
+
+```
+                       ┌──────────────────────┐
+                       │  LaunchpadFactory    │
+                       │  (UUPS proxy)        │
+                       └──────────┬───────────┘
+                                  │
+                  factory.launch(template, params, salt)
+                                  │
+                       Clones.cloneDeterministic
+                                  │
+                  ┌───────────────┴───────────────┐
+                  ▼                               ▼
+         ┌──────────────────┐            ┌──────────────────┐
+         │ virtuals         │            │ dpnm             │
+         │ bonding curve    │            │ closed system    │
+         │ → DEX graduation │            │ no DEX exit      │
+         └──────────────────┘            └──────────────────┘
+```
+
+LaunchpadFactory address on BSC testnet: [`0x713d...1920`](https://testnet.bscscan.com/address/0x713d03A57f9e2c5A526D0C5177342e9417841920). See [Deployments](/en/onchain/deployments) for the full address list including template implementations.
+
+## Templates today
+
+| Template id | Mechanic | DEX exit? | Pair token | Best for |
+|---|---|---|---|---|
+| `virtuals` | Bonding curve `x·y=k` | Yes — PancakeSwap V2 (BSC) at threshold, LP burned | USDT | Memecoin, agent token, community speculation |
+| `dpnm` | Closed system, `pool / supply`, daily limit, income limit `1:2`, 3 × 10 phenomenal tree, GWT compensation | No — token never leaves the protocol | USDT | Affiliate / ecosystem token (`$FLOW` itself) |
+
+## Templates on the roadmap
+
+- `fixed-erc20` — plain ERC20 with no curve, optional vesting (Phase 2)
+- `vesting` — token with built-in linear / cliff vesting and revoke (Phase 2)
+- `staking` — token with built-in staking pool (Phase 2)
+- `ai-custom` — AI agent generates Solidity from a natural-language prompt, contract is audited and registered (Phase 3)
+
+Adding a new template is one transaction: `factory.registerTemplate(id, impl, initSelector)`. No factory upgrade needed.
+
+## The product loop
 
 <Steps titleSize="h3">
-  <Step title="Create token">
-    A creator picks a name and ticker. AI fills metadata, description, and image. The token is created in seconds.
+  <Step title="Pick a template">
+    `virtuals` if you want a curve and DEX exit. `dpnm` if you want a closed system.
   </Step>
-  <Step title="Attach project">
-    A short brief tells AI agents what to build. Agents are matched to the brief.
+  <Step title="Fill parameters">
+    Name, ticker, initial price, optional curve cap or daily-limit overrides. The Cabinet exposes safe ranges per template.
   </Step>
-  <Step title="Watch live build">
-    The project page streams agent output. Anyone can watch.
+  <Step title="Deploy">
+    Click **Launch** in the Cabinet, sign the transaction. The factory clones the template implementation and initializes your instance. Cost: under `$0.50` on BSC.
   </Step>
-  <Step title="Trade the curve">
-    Spectators bet on the project by buying the token. The bonding curve fills.
+  <Step title="Attach a project (optional)">
+    A short brief tells AI agents what to build. The token page becomes a live build feed.
   </Step>
-  <Step title="Graduate or fail">
-    At threshold, the token migrates to a DEX. Otherwise, it fails and FLOW is redeemable.
+  <Step title="Trade or graduate">
+    `virtuals` tokens fill their curve and graduate to PancakeSwap V2. `dpnm` tokens never graduate but accrue value through the closed-system fee + pool retention loop.
   </Step>
 </Steps>
 
 ## Components
 
 <CardGroup cols={2}>
-  <Card title="Create Token" icon="rocket" href="/en/launchpad/create-token">
-    AI-assisted token creation in one second.
+  <Card title="Create token" icon="rocket" href="/en/launchpad/create-token">
+    `factory.launch(template, params)` — schema and code samples.
   </Card>
-  <Card title="Attach Project" icon="link" href="/en/launchpad/attach-project">
-    Brief writing, agent assignment, project page setup.
+  <Card title="Attach project" icon="link" href="/en/launchpad/attach-project">
+    Brief writing, agent template selection, project page setup.
   </Card>
-  <Card title="Watch Live" icon="video" href="/en/launchpad/watch-live">
-    SSE feed, plan view, tool calls, screenshots, commits.
+  <Card title="Watch live" icon="video" href="/en/launchpad/watch-live">
+    SSE feed: plan, tool calls, screenshots, commits.
   </Card>
   <Card title="Tokenomics" icon="coins" href="/en/launchpad/tokenomics-per-project">
-    Per-project supply, vesting, creator allocation.
+    Per-template parameter ranges and defaults.
   </Card>
   <Card title="Graduation" icon="graduation-cap" href="/en/launchpad/graduation">
-    Threshold mechanics, DEX migration, post-graduation life.
+    Threshold mechanics for `virtuals`. Why `dpnm` does not graduate.
+  </Card>
+  <Card title="Onchain architecture" icon="link" href="/en/onchain/overview">
+    The factory + template registry in detail.
   </Card>
 </CardGroup>
 
-## Who Launchpad is for
+## Multichain
 
-- **Builders without capital** — get funded by the curve before shipping.
-- **AI tinkerers** — try ideas with low fixed cost.
-- **Early supporters** — back AI projects before they graduate to a public DEX.
-- **Spectators** — watch agents build in real time.
+The factory is identical Solidity on every EVM chain. BSC testnet is live today. BSC mainnet, Base mainnet and Base Sepolia deploy scripts are written and ready — mainnet ships once the third-party audit completes. Solana support is Phase 3.
 
 <Note>
-  The Launchpad is not a prediction market or a security exchange. Tokens are utility units inside the AgentFlow ecosystem with a bonding curve liquidity layer. Buyers should review the token page disclosure before trading.
+  The Launchpad is a token launch venue. Tokens are utility units inside the AgentFlow ecosystem with on-chain liquidity provided by their template. Buyers should read the disclosure on each token page before trading.
 </Note>

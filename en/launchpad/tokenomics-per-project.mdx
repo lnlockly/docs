@@ -1,61 +1,81 @@
 ---
 title: "Tokenomics per Project"
-description: "Default supply, allocation, and curve parameters for Launchpad tokens."
+description: "Default and override-able parameters per template. Different templates take different shapes."
 ---
 
-Every Launchpad token is created with the same default parameters unless the creator overrides them at launch. Defaults are conservative and aimed at fair-launch dynamics.
+Tokenomics is determined entirely by the template you pick at launch. `virtuals` and `dpnm` have **completely different parameter sets** — there is no shared "default tokenomics" page. This page documents both.
 
-## Default supply and allocation
+## `virtuals` template
+
+A bonding curve token paired with `paymentToken`. Defaults aim for fair-launch dynamics with a clean DEX migration.
+
+| Parameter | Default | Notes |
+|---|---|---|
+| Total supply | `1,000,000,000` | Fixed at curve initialization |
+| Curve type | Constant product `x·y=k` | Single curve segment |
+| Initial price | `0.0001` `paymentToken` per token | Override at launch |
+| Slippage cap | `2%` per trade | Enforced by router |
+| Graduation threshold | `42,000` `paymentToken` market cap | Override at launch within platform caps |
+| Failure window | `30` days | Override at launch |
+| Buy fee | `1%` | Routed to platform treasury |
+| Sell fee | `1%` | Routed to platform treasury |
+
+### Default allocation (virtuals)
 
 | Bucket | Allocation | Vesting |
 |---|---|---|
 | Bonding curve | 80% | Released as bought |
-| Creator | 5% | 12-month linear, 1-month cliff |
-| Platform | 5% | Locked, on-chain after graduation |
+| Creator | 5% | 12-month linear, 1-month cliff, vesting starts at graduation |
+| Platform | 5% | Locked, on-chain |
 | Holders airdrop reserve | 5% | Released at graduation |
-| Liquidity (post-graduation) | 5% | Locked LP at graduation |
+| Liquidity (post-graduation) | 5% | LP burned to `0xdead` at graduation |
 
-Total supply is fixed at **1,000,000,000** tokens at creation.
+## `dpnm` template
 
-## Curve parameters
+A closed-system token paired with `paymentToken`. Price is algorithmic; supply expands and contracts with buys and sells. There is **no fixed total supply** because the model is supply = `pool / price`.
 
-| Parameter | Default |
-|---|---|
-| Curve type | Constant product |
-| Initial price | 0.0001 FLOW per token |
-| Slippage cap | 2% per trade |
-| Graduation threshold | 42,000 FLOW market cap |
-| Failure window | 30 days |
-
-The threshold is denominated in FLOW (= USD). At default supply of 1B and a 4-stage curve, graduation roughly corresponds to a $42K market cap.
-
-## Trading fees
-
-| Fee | Rate | Beneficiary |
+| Parameter | Default (`$FLOW`) | Notes |
 |---|---|---|
-| Buy fee | 1% | Platform |
-| Sell fee | 1% | Platform |
-| Slippage absorption | up to 2% | Curve |
+| Initial price | `0.1` USDT / token | Override at launch |
+| Daily buy limit per user | `max(50 USDT, pool * 0.001)` | `dailyLimitFloor` and `dailyLimitRate` overridable |
+| Income limit multiplier | `2` (1:2) | Override at launch |
+| Buy fee | `20%` | `10%` to phenomenal-tree marketing, `10%` retained in pool |
+| Sell fee | `10%` | `5%` to pool, `5%` to treasury |
+| Tree activation cost | `10 USDT` for 30 days | Max stack: 90 days |
+| Tree extension | `10 USDT` per 30 days | Same cost as activation |
+| Phenomenal tree shape | 3 branches × 10 levels | 88,572 positions per root |
+| GWT compensation | 1:1 of every paid fee | Redeemable for income limit |
 
-All fees are charged in FLOW, debited at trade time, and posted to the FLOW ledger.
+### Phenomenal tree payout per `extendTree($10)`
 
-## Creator unlock
+| Level | Payout to ancestor | Total at level |
+|---|---|---|
+| L1–L3 | `$0.1` each | `$0.3` |
+| L4–L6 | `$0.5` each | `$1.5` |
+| L7–L10 | `$0.8` each | `$3.2` |
+| **Marketing total** | | **`$5.0`** |
+| Pool retention | | `$1.0` |
+| Treasury | | `$4.0` |
 
-Creator allocation vests over 12 months with a 1-month cliff. The vesting clock starts at *graduation*, not at token creation, so a token that fails delivers nothing to the creator. This aligns the creator's incentives with shipping.
+If an ancestor is inactive at the time of payout, that level's share is rerouted to treasury. See [Phenomenal tree](/en/token/phenomenal-tree).
 
-<Warning>
-  Vested creator FLOW is paid as USD-equivalent FLOW credits, not as on-chain tokens. Withdrawal goes through the standard [Payouts](/en/flow/payouts) flow.
-</Warning>
+## Trading fees that the **platform** charges (separate from template fees)
+
+These apply on top of the template's internal fees and go to the platform treasury:
+
+| Fee | Rate | Applies to |
+|---|---|---|
+| Launch fee | `0` | Free during testnet, possibly small fee on mainnet (TBD) |
+| Marketplace per-call platform share | `20%` LLM bucket / `10%` tool premium | See [Earnings split](/en/marketplace/earnings-split) |
 
 ## Custom parameters
 
-A creator can override defaults at launch via the `curve` and `allocation` fields in `POST /tokens`. The Launchpad UI exposes only conservative ranges; programmatic launches via the API can request any values within platform-wide caps.
+A creator can override defaults at launch within platform-wide caps. The Cabinet exposes only conservative ranges; programmatic launches via the API can request any values within caps.
 
-See [Tokens API](/en/api/tokens) for the full request schema and validation rules.
+See [Create a Token](/en/launchpad/create-token) for the full parameter schema per template, and [Tokens API](/en/api/tokens) for validation rules.
 
 ## Holder rewards
 
-Holders of an attached project's token earn rewards in two ways:
+Holders of a token launched as `virtuals` earn through curve appreciation and (if the token is attached to a marketplace agent) per-call holder rewards. See [Token of Agent](/en/marketplace/token-of-agent).
 
-1. **Curve appreciation** — direct gain if the token graduates.
-2. **Token-of-agent split** — once the project's agent is published in the marketplace, 5% of every call earnings flows pro-rata to holders. See [Token of Agent](/en/marketplace/token-of-agent).
+Holders of a token launched as `dpnm` earn through the closed-system pool growth (`pool / supply` rises over time) and — if active in the phenomenal tree — through every `extendTree` and buy from descendants. See [Phenomenal tree](/en/token/phenomenal-tree).

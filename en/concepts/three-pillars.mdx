@@ -1,52 +1,54 @@
 ---
 title: "Three Pillars"
-description: "Launchpad, Marketplace, and Freelance Bridge — the three surfaces that share AgentFlow's runtime and FLOW economy."
+description: "Launchpad, $FLOW token economy, Marketplace — the three surfaces that share AgentFlow's runtime and onchain rails."
 ---
 
-AgentFlow has three product surfaces. They share the same agent runtime, the same FLOW credits ledger, and the same identity layer, but each one targets a different motion.
+AgentFlow has three product surfaces. They share the same agent runtime, the same onchain settlement layer, and the same identity layer, but each one targets a different motion.
 
 <CardGroup cols={3}>
   <Card title="Launchpad" icon="rocket" href="/en/launchpad/overview">
-    Tokenized launch for AI projects.
+    `factory.launch(template, params)` — one second from idea to a tradable token.
+  </Card>
+  <Card title="$FLOW economy" icon="coins" href="/en/token/overview">
+    Closed-system platform token paired with USDT. Daily limit, income limit, phenomenal tree.
   </Card>
   <Card title="Marketplace" icon="store" href="/en/marketplace/overview">
-    Productized AI agents with per-call pricing.
-  </Card>
-  <Card title="Freelance Bridge" icon="briefcase">
-    Live AI freelance for one-off jobs.
+    Productized AI agents with per-call pricing. Optional agent-token income share for holders.
   </Card>
 </CardGroup>
 
 ## Launchpad
 
-Launchpad is for builders who want capital and attention before the product exists. The flow is:
+The Launchpad is the entry point for *origination*. A creator picks a template, fills parameters, and the factory deploys a fresh token. Two templates are live today:
 
-1. Pick a name and ticker. AI fills metadata and image. The token is created and trades on a built-in bonding curve immediately.
-2. Attach a project brief — a short description of what the agents should build.
-3. AI agents start building. Their output streams live to anyone watching the project page.
-4. As the bonding curve fills, the token graduates: at threshold (default $42K in FLOW market cap) it migrates to a DEX pool and becomes a regular ERC-20 token.
+- **`virtuals`** — bonding curve `x·y=k` priced in `paymentToken` (USDT on BSC). At graduation threshold, liquidity migrates to PancakeSwap V2 and the LP is burned to `0xdead`. Best for memecoin-style speculation, agent tokens that want DEX distribution.
+- **`dpnm`** — closed system with algorithmic price `pool / supply`, `1:2` income limit, daily buy limit, 3 × 10 phenomenal tree, GWT fee compensation. Used by `$FLOW` itself and any team that wants a price-only-goes-up MLM-style token.
 
-The Launchpad is fundamentally a market for *attention to build*. Holders bet on the project shipping. Builders cash in on the curve.
+EIP-1167 minimal proxy clones make a launch cost under `$0.50` on BSC. The factory is upgrade-safe (UUPS), audited at the template level (one audit covers all instances), and ready for additional templates (`fixed-erc20`, `vesting`, `staking`, `ai-custom`) as they ship.
+
+See [Onchain → Overview](/en/onchain/overview) for the factory architecture.
+
+## $FLOW economy
+
+`$FLOW` is the platform's own token, deployed as the first instance of the `dpnm` template. It is on-chain ERC20 paired with USDT, with built-in daily limit, income limit, phenomenal tree and GWT compensation. The platform settles vendor payments, agent payouts and creator allocations through `$FLOW`.
+
+The full mechanic suite lives in the **$FLOW token** group:
+
+- [Overview](/en/token/overview)
+- [Buy / Sell](/en/token/buy-sell)
+- [Income limit](/en/token/income-limit)
+- [Phenomenal tree](/en/token/phenomenal-tree)
+- [Extend tree](/en/token/extend-tree)
+- [GWT](/en/token/gwt)
+
+Anyone who launches their own `dpnm` token through the factory inherits the same mechanics — the implementation is shared, only the parameters and instance state differ.
 
 ## Marketplace
 
-Marketplace is for builders who already have a working agent and want to monetize calls. Every published agent is callable through the AgentFlow runtime. Calls cost FLOW, which the user has topped up or earned through a subscription grant.
+The Marketplace lists working agents callable through the AgentFlow runtime. Per-call cost settles in `$FLOW`. Earnings split deterministically across caller, creator, platform, agent-token holders and a reserve.
 
-Four monetization models are supported (see [Monetization Models](/en/marketplace/monetization-models)):
-
-- **Pay-per-call** — fixed FLOW per invocation
-- **Subscription** — flat monthly FLOW for unlimited calls under a quota
-- **Hybrid** — base subscription plus per-call overages
-- **Freemium** — N free calls per day, paid above that
-
-Earnings are split deterministically across caller, creator, platform, agent-token holders, and a reserve. See [Earnings Split](/en/marketplace/earnings-split).
-
-## Freelance Bridge
-
-The Freelance Bridge is the human-in-the-loop variant. A buyer posts a job (build me a landing page, write me a contract, design a logo). AI agents respond, draft, iterate. The buyer watches the build live and pays in FLOW when the deliverable lands.
-
-Unlike traditional freelance marketplaces, the build is *transparent in flight* — every tool call and every revision streams to the project page. Disputes are resolved against the visible trail.
+If an agent's creator launched a token to back the agent (either `dpnm` or `virtuals`), token holders earn a perpetual slice of every call. See [Token of Agent](/en/marketplace/token-of-agent).
 
 <Note>
-  All three pillars settle to the same FLOW ledger and the same payout queue. A user who launches a token, publishes an agent, and takes freelance jobs sees one consolidated balance.
+  All three pillars settle on-chain through the same FlowProtocol contract. A user who launches a token, holds another, and calls a third agent sees consistent on-chain accounting in their wallet, plus a Cabinet view for off-chain context (subscriptions, project state, agent metadata).
 </Note>

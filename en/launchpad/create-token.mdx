@@ -1,11 +1,20 @@
 ---
 title: "Create a Token"
-description: "Launch an AgentFlow token in one second. AI fills metadata, you confirm."
+description: "factory.launch(template_id, params) — deploy a token via EIP-1167 minimal proxy clone for under $0.50 on BSC."
 ---
 
-Token creation is the entry point to the Launchpad. The interaction is intentionally one screen, three fields, AI for the rest.
+Token creation calls `LaunchpadFactory.launch(template_id, params, salt)`. The factory clones the audited implementation for the requested template, initializes it with your params, and returns the deployed instance address. Cost on BSC: under `$0.50` total.
 
-## Required inputs
+## Pick a template
+
+| Template | Use it for | Reference |
+|---|---|---|
+| `virtuals` | Memecoin, agent-of-marketplace token, anything that wants a DEX exit | [Bonding curve](/en/concepts/bonding-curve) |
+| `dpnm` | Closed-system token with built-in MLM tree, `$FLOW`-style economics | [Closed system](/en/concepts/closed-system) |
+
+Each template takes a different parameter shape. The Cabinet exposes safe ranges per template; programmatic launches via the API can request any values within platform-wide caps.
+
+## Required inputs (common)
 
 <ParamField path="name" type="string" required>
   Display name for the token, e.g. "Hermes Dispatch".
@@ -16,85 +25,128 @@ Token creation is the entry point to the Launchpad. The interaction is intention
 </ParamField>
 
 <ParamField path="brief" type="string">
-  Optional short description of what the project will do. AI uses this to generate richer metadata.
+  Optional one-paragraph project description. AI fills metadata, image, tags from this.
 </ParamField>
 
-## What AI fills
+<ParamField path="paymentToken" type="address" required>
+  ERC20 token used as the pair. On BSC: USDT (`0x55d3...7955`) on mainnet, MockUSDT (`0xD8bD...F04B`) on testnet.
+</ParamField>
 
-The `tokens-ai-assist` service generates:
+## Template-specific params: `virtuals`
 
-- **Long description** (200–400 chars) from the brief
-- **Cover image** via image-gen (square 1024px)
-- **Tags** for marketplace surfacing
-- **Default initial supply** and curve parameters
+<ParamField path="initialPrice" type="number">
+  Starting price in `paymentToken` units per project token. Default: `0.0001`.
+</ParamField>
 
-The creator sees a preview and can edit any field before confirming.
+<ParamField path="graduationThreshold" type="number">
+  Locked `paymentToken` value at which the curve seals and migrates to PancakeSwap V2.
+</ParamField>
 
-## API call
+<ParamField path="failureWindowDays" type="number">
+  Days before a non-graduated curve transitions to `failed`. Default: `30`.
+</ParamField>
+
+## Template-specific params: `dpnm`
+
+<ParamField path="initialPrice" type="number">
+  Starting price in `paymentToken` per token. `$FLOW` launched at `0.1 USDT / FLOW`.
+</ParamField>
+
+<ParamField path="dailyLimitFloor" type="number">
+  Minimum daily buy limit per user. Default: `50` (USDT). Effective limit is `max(dailyLimitFloor, pool * dailyLimitRate)`.
+</ParamField>
+
+<ParamField path="dailyLimitRate" type="number">
+  Pool-fraction component of daily limit. Default: `0.001` (0.1%).
+</ParamField>
+
+<ParamField path="incomeLimitMultiplier" type="number">
+  Income limit multiplier on each buy. Default: `2` (1:2 — buy `$50`, earn up to `$100`).
+</ParamField>
+
+<ParamField path="treeActivationCost" type="number">
+  Cost in `paymentToken` to activate the phenomenal tree for 30 days. Default: `10`.
+</ParamField>
+
+## Code samples
 
 <CodeGroup>
-```bash curl
+```typescript ethers.js
+import { Contract, Wallet, JsonRpcProvider, parseUnits } from "ethers";
+import factoryAbi from "./abi/LaunchpadFactory.json";
+
+const provider = new JsonRpcProvider("https://data-seed-prebsc-1-s1.binance.org:8545");
+const wallet = new Wallet(PRIVATE_KEY, provider);
+const factory = new Contract(
+  "0x713d03A57f9e2c5A526D0C5177342e9417841920",
+  factoryAbi,
+  wallet,
+);
+
+const params = factory.interface.encodeFunctionData("initializeDpnm", [
+  "Hermes Token",                // name
+  "HERMES",                      // ticker
+  "0xD8bDfAAA00496EdE053210f2bcB0702C312FF04B", // MockUSDT
+  parseUnits("0.1", 18),         // initialPrice
+  parseUnits("50", 18),          // dailyLimitFloor
+  10,                            // dailyLimitRate (in basis points / 10000)
+  2,                             // incomeLimitMultiplier
+  parseUnits("10", 18),          // treeActivationCost
+]);
+
+const tx = await factory.launch("dpnm", params, ethers.id("hermes-token-v1"));
+const receipt = await tx.wait();
+const launchEvent = receipt.logs.find(/* Launched(address instance, ...) */);
+const instance = launchEvent.args.instance;
+console.log("Deployed:", instance);
+```
+
+```bash REST proxy
 curl -X POST https://api.agentflow.website/tokens \
   -H "Content-Type: application/json" \
   -H "Cookie: af_session=..." \
   -d '{
-    "name": "Hermes Dispatch",
+    "template": "dpnm",
+    "name": "Hermes Token",
     "ticker": "HERMES",
-    "brief": "AI dispatcher for last-mile logistics"
+    "brief": "AI dispatcher token",
+    "params": {
+      "initialPrice": "0.1",
+      "dailyLimitFloor": "50",
+      "incomeLimitMultiplier": 2,
+      "treeActivationCost": "10"
+    }
   }'
-```
-
-```javascript fetch
-const res = await fetch("https://api.agentflow.website/tokens", {
-  method: "POST",
-  credentials: "include",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    name: "Hermes Dispatch",
-    ticker: "HERMES",
-    brief: "AI dispatcher for last-mile logistics",
-  }),
-});
-const token = await res.json();
-```
-
-```python httpx
-import httpx
-
-r = httpx.post(
-    "https://api.agentflow.website/tokens",
-    cookies={"af_session": "..."},
-    json={
-        "name": "Hermes Dispatch",
-        "ticker": "HERMES",
-        "brief": "AI dispatcher for last-mile logistics",
-    },
-)
-token = r.json()
 ```
 </CodeGroup>
 
+The Cabinet uses RainbowKit + wagmi to send the transaction directly from the user's wallet. The REST endpoint is a convenience for off-chain bookkeeping (project metadata, brief, image), it does **not** sign on the user's behalf — the on-chain `factory.launch(...)` call is always wallet-initiated.
+
 ## Response
+
+For the REST proxy:
 
 ```json
 {
   "id": "tok_01HQ...",
-  "slug": "hermes-dispatch",
-  "name": "Hermes Dispatch",
+  "slug": "hermes-token",
+  "name": "Hermes Token",
   "ticker": "HERMES",
-  "state": "prototype",
+  "template": "dpnm",
+  "instance": "0x6B7700395708a0B2578B5E3d58b895C34a24e959",
+  "chainId": 97,
   "imageUrl": "https://cdn.agentflow.website/tokens/...",
-  "curve": {
-    "initialPrice": 0.0001,
-    "graduationThresholdFlow": 42000,
-    "progressToGraduation": 0
-  },
-  "createdAt": "2026-04-25T10:31:00Z"
+  "state": "live",
+  "createdAt": "2026-04-26T10:31:00Z"
 }
 ```
 
-The token is tradable on the curve immediately. Next, [attach a project](/en/launchpad/attach-project).
+The token is tradable immediately. Next, [attach a project](/en/launchpad/attach-project) to start the live build.
 
 <Tip>
-  The same wallet can create multiple tokens. There is no anti-spam fee, but tokens with no project attached fall down the discovery ranking quickly.
+  The same wallet can launch multiple tokens. There is no anti-spam fee, but tokens with no project attached fall down the discovery ranking quickly.
 </Tip>
+
+<Note>
+  AI metadata fill (long description, cover image, tags) is generated off-chain by the `tokens-ai-assist` service and stored in the platform DB. The on-chain factory call only takes the parameters above; the metadata layer lives in `agentflow-api`.
+</Note>

@@ -1,11 +1,21 @@
 ---
 title: "Tokens API"
-description: "Create tokens, fetch token state, list holders, query trades."
+description: "Off-chain metadata for tokens launched through factory.launch(). On-chain queries via the chain indexer."
 ---
+
+The Tokens API is a thin metadata layer on top of the on-chain `LaunchpadFactory` and the per-template instances. **The actual launch is always wallet-initiated** — the API does not custody keys. These endpoints handle:
+
+- Pre-flight metadata (name, ticker, description, image, tags) before signing.
+- Post-launch reconciliation (linking `instance` address to a slug, AI-fill, image upload).
+- Read-side queries from the chain indexer (state, holders, trades).
 
 ## POST /tokens
 
-Create a new Launchpad token. **Auth**: required.
+Register off-chain metadata for a token you are about to launch (or just launched). **Auth**: required.
+
+<ParamField body="template" type="string" required>
+  One of `virtuals`, `dpnm`. More templates added as they ship.
+</ParamField>
 
 <ParamField body="name" type="string" required>
   Display name.
@@ -16,15 +26,19 @@ Create a new Launchpad token. **Auth**: required.
 </ParamField>
 
 <ParamField body="brief" type="string">
-  Optional short description; AI uses this to fill metadata.
+  Optional short description; AI uses this to fill richer metadata.
 </ParamField>
 
-<ParamField body="curve" type="object">
-  Optional override of curve parameters. Falls back to platform defaults.
+<ParamField body="params" type="object" required>
+  Template-specific parameters. Shape differs per template — see [Create a Token](/en/launchpad/create-token).
 </ParamField>
 
-<ParamField body="allocation" type="object">
-  Optional override of allocation buckets. Capped at platform-wide ranges.
+<ParamField body="instance" type="address">
+  Optional. If you've already deployed via `factory.launch(...)`, pass the resulting instance address; the API will skip its own launch flow and just store metadata.
+</ParamField>
+
+<ParamField body="chainId" type="number" required>
+  Chain to launch on. `97` = BSC testnet, `56` = BSC mainnet (when live), `8453` = Base mainnet (Phase 2).
 </ParamField>
 
 <CodeGroup>
@@ -33,29 +47,34 @@ curl -X POST https://api.agentflow.website/tokens \
   -H "Content-Type: application/json" \
   -H "Cookie: af_session=..." \
   -d '{
-    "name": "Hermes Dispatch",
+    "template": "dpnm",
+    "name": "Hermes Token",
     "ticker": "HERMES",
-    "brief": "AI dispatcher for last-mile logistics"
+    "brief": "AI dispatcher token",
+    "chainId": 97,
+    "params": {
+      "initialPrice": "0.1",
+      "dailyLimitFloor": "50",
+      "incomeLimitMultiplier": 2,
+      "treeActivationCost": "10"
+    }
   }'
 ```
 
-```javascript fetch
+```typescript fetch
 const res = await fetch("https://api.agentflow.website/tokens", {
   method: "POST",
   credentials: "include",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ name, ticker, brief }),
+  body: JSON.stringify({
+    template: "dpnm",
+    name,
+    ticker,
+    brief,
+    chainId: 97,
+    params: { /* per-template */ },
+  }),
 });
-```
-
-```python httpx
-import httpx
-
-r = httpx.post(
-    "https://api.agentflow.website/tokens",
-    cookies={"af_session": "..."},
-    json={"name": name, "ticker": ticker, "brief": brief},
-)
 ```
 </CodeGroup>
 
@@ -64,66 +83,83 @@ r = httpx.post(
 ```json
 {
   "id": "tok_01HQ...",
-  "slug": "hermes-dispatch",
-  "name": "Hermes Dispatch",
+  "slug": "hermes-token",
+  "name": "Hermes Token",
   "ticker": "HERMES",
-  "imageUrl": "https://cdn.agentflow.website/...",
-  "state": "prototype",
-  "curve": {
-    "initialPrice": 0.0001,
-    "graduationThresholdFlow": 42000,
-    "progressToGraduation": 0
-  }
+  "template": "dpnm",
+  "instance": "0x6B7700395708a0B2578B5E3d58b895C34a24e959",
+  "chainId": 97,
+  "imageUrl": "https://cdn.agentflow.website/tokens/...",
+  "state": "live",
+  "createdAt": "2026-04-26T10:31:00Z"
 }
 ```
+
+If `instance` was not provided in the request, the response also includes a `pendingLaunchTx` field with the encoded calldata for the user's wallet to sign.
 
 ## GET /tokens
 
 List tokens. Public.
 
-**Query params**: `cursor`, `state` (`prototype`, `graduating`, `sentient`, `failed`), `sort`.
+**Query params**: `cursor`, `template` (`virtuals` | `dpnm`), `state` (`live`, `graduating`, `sentient`, `failed`), `chainId`, `sort`.
 
 ## GET /tokens/:slug
 
-Fetch full token state including `state`, `progressToGraduation`, holder count, and last trade price. Public.
+Fetch full token state including on-chain reads from the chain indexer. Public.
 
 ```json
 {
-  "slug": "hermes-dispatch",
-  "name": "Hermes Dispatch",
+  "slug": "hermes-token",
+  "name": "Hermes Token",
   "ticker": "HERMES",
+  "template": "virtuals",
+  "instance": "0x...",
+  "chainId": 97,
   "state": "graduating",
   "progressToGraduation": 0.83,
-  "lockedFlow": 34860,
-  "graduationThresholdFlow": 42000,
+  "lockedPaymentToken": "34860",
+  "graduationThreshold": "42000",
   "estimatedTimeToGraduation": "2d 14h",
   "holdersCount": 412,
-  "lastTradePrice": 0.0042
+  "lastTradePrice": "0.0042"
+}
+```
+
+For `dpnm` tokens, the response shape differs:
+
+```json
+{
+  "slug": "flow",
+  "ticker": "FLOW",
+  "template": "dpnm",
+  "instance": "0x2680b933af7a874d20954b03F38C86891A786511",
+  "flowProtocol": "0x7F20f8e6e5077a4E11A1A2Fe54449ab55D32f653",
+  "phenomenalTree": "0x9E12238d24Eece9b7575a53b17e36515eaEE0A30",
+  "gwt": "0x40711d364b680ad7e85429bd36d7237E4e960783",
+  "currentPrice": "0.1234",
+  "poolUsdt": "150000",
+  "totalSupply": "1216000",
+  "holdersCount": 89,
+  "treeActivePositions": 73
 }
 ```
 
 ## GET /tokens/:slug/holders
 
-List token holders, paginated.
-
-```bash
-curl https://api.agentflow.website/tokens/hermes-dispatch/holders
-```
-
-**Response**
+List token holders, paginated. Public. Reads from the chain indexer.
 
 ```json
 {
   "items": [
-    { "address": "0xabc...", "balance": 12500000, "share": 0.0125 }
+    { "address": "0xabc...", "balance": "12500000", "share": 0.0125 }
   ],
   "nextCursor": "..."
 }
 ```
 
-## POST /onchain/trades (curve buy/sell)
+## GET /tokens/:slug/trades
 
-Internal trading endpoint exposed through the chain indexer service. Public clients use the Cabinet UI which calls this. The endpoint validates slippage and updates the $FLOW ledger.
+List recent buys and sells (and graduations for `virtuals`). Sourced from `swap_events` in the chain indexer.
 
 ## Errors
 
@@ -131,6 +167,11 @@ Internal trading endpoint exposed through the chain indexer service. Public clie
 |---|---|
 | `ticker_taken` | Ticker already in use |
 | `invalid_ticker` | Out of allowed character range |
-| `curve_out_of_range` | Custom curve outside platform caps |
+| `template_unknown` | Template id not registered on this chain |
+| `params_invalid` | Param shape does not match the template |
+| `chain_unsupported` | `chainId` not configured |
 | `token_not_found` | Slug does not exist |
-| `state_locked` | Trade attempted on `failed` or `sentient` token |
+
+<Note>
+  All on-chain interactions (launch, buy, sell, activate, extendTree, claimGWT, etc.) happen directly from the user's wallet. The API never signs on the user's behalf.
+</Note>

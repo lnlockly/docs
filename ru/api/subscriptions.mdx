@@ -1,21 +1,41 @@
 ---
 title: "Subscriptions API"
-description: "Активация тарифа, статус, выплаты."
+description: "Активация тарифа, проверка статуса. Подписки открывают платформенные фичи (приоритетная очередь, premium-агенты, ускоренный SSE) — кредитов FLOW они больше не дают."
 ---
+
+Подписки в AgentFlow теперь — **feature gates**, а не выдача кредитов. Прежняя модель ежемесячного гранта FLOW-кредитов исчезла вместе с переездом `$FLOW` в ончейн-токен. Подписки открывают платформенные фичи для пользователей маркетплейса и live-сборки.
+
+<Note>
+  Старые доки ссылались на `monthlyGrantFlow` и `currentGrantRemainingFlow`. Этих полей больше нет. Если у вас биллинг зависел от них, переключайтесь на проверки фич (`features.priorityQueue`, `features.premiumAgents` и т. п.).
+</Note>
+
+## Тарифы
+
+| Тариф | Стоимость в месяц | Фичи |
+|---|---|---|
+| **Plus** | $20 | Приоритетная очередь, базовая аналитика |
+| **Pro** | $100 | Всё из Plus + premium-агенты, продвинутая аналитика, ускоренный SSE |
+| **Max** | $200 | Всё из Pro + приватные страницы проектов, выделенный runtime-слот |
+
+Смена тарифа на даунгрейд срабатывает в начале следующего расчётного периода, на апгрейд — сразу (pro-rated).
 
 ## POST /subscriptions/checkout
 
-Запустить активацию подписки. **Auth**: требуется.
+Стартует флоу checkout подписки. **Auth**: нужен.
 
 <ParamField body="tier" type="string" required>
-  Одно из `plus`, `pro`, `max`.
+  Один из `plus`, `pro`, `max`.
+</ParamField>
+
+<ParamField body="provider" type="string" required>
+  Один из `cryptobot`, `platega`, `usdt_bep20`.
 </ParamField>
 
 ```bash
 curl -X POST https://api.agentflow.website/subscriptions/checkout \
   -H "Content-Type: application/json" \
   -H "Cookie: af_session=..." \
-  -d '{ "tier": "pro" }'
+  -d '{ "tier": "pro", "provider": "cryptobot" }'
 ```
 
 **Ответ**
@@ -24,18 +44,17 @@ curl -X POST https://api.agentflow.website/subscriptions/checkout \
 {
   "subscriptionId": "sub_01HQ...",
   "tier": "pro",
-  "contractAddress": "0x...",
-  "amountFlow": 100,
-  "payload": "0x...",
-  "expiresAt": "2026-04-25T11:30:00Z"
+  "provider": "cryptobot",
+  "checkoutUrl": "https://t.me/CryptoBot?start=invoice-...",
+  "expiresAt": "2026-04-26T11:30:00Z"
 }
 ```
 
-Передайте `contractAddress`, `amountFlow` и `payload` в кошелёк — он соберёт on-chain транзакцию. Активация завершится, когда индексер увидит депозит. До запуска основной сети `contractAddress` равен `null`, и платформа списывает $FLOW из регистра напрямую.
+`checkoutUrl` зависит от провайдера. Редирекьте пользователя туда. Активация происходит на сервере, как только webhook провайдера подтверждает оплату.
 
 ## GET /me/subscription
 
-Получить активную подписку текущего пользователя. **Auth**: требуется.
+Получить активную подписку текущего пользователя. **Auth**: нужен.
 
 ```bash
 curl https://api.agentflow.website/me/subscription \
@@ -48,62 +67,41 @@ curl https://api.agentflow.website/me/subscription \
 {
   "tier": "pro",
   "status": "active",
-  "monthlyGrantFlow": 100,
-  "currentGrantRemainingFlow": 73.4,
-  "renewsAt": "2026-05-25T11:30:00Z",
-  "txHash": "0x..."
+  "renewsAt": "2026-05-26T11:30:00Z",
+  "provider": "cryptobot",
+  "features": {
+    "priorityQueue": true,
+    "premiumAgents": true,
+    "fasterSse": true,
+    "privateProjects": false,
+    "dedicatedRuntime": false
+  }
 }
 ```
 
-Значения `status`: `active`, `grace` (продление не прошло, идут повторы), `canceled`, `none`.
+Значения `status`: `active`, `grace` (renew не прошёл, ретраим), `canceled`, `none`.
 
-## POST /me/payouts/request
+## POST /me/subscription/cancel
 
-Вывести $FLOW. Полный поток — в [Выплатах](/ru/flow/payouts).
-
-<ParamField body="amountFlow" type="number" required>
-  Сумма в $FLOW. Не больше доступного к выводу баланса.
-</ParamField>
-
-<ParamField body="rail" type="string" required>
-  `wallet` или `manual`.
-</ParamField>
+Отменить в конце периода. Пользователь остаётся на тарифе до `renewsAt`, потом падает в `none`.
 
 ```bash
-curl -X POST https://api.agentflow.website/me/payouts/request \
-  -H "Content-Type: application/json" \
-  -H "Cookie: af_session=..." \
-  -d '{ "amountFlow": 100, "rail": "wallet" }'
-```
-
-Адрес-получатель — ваш SIWE-кошелёк.
-
-## GET /me/payouts
-
-Список выплат пользователя.
-
-```bash
-curl https://api.agentflow.website/me/payouts \
+curl -X POST https://api.agentflow.website/me/subscription/cancel \
   -H "Cookie: af_session=..."
 ```
 
-**Ответ**: массив объектов выплат с `id`, `amountFlow`, `feeFlow`, `rail`, `status`, `createdAt`.
+## Авто-renew и grace
 
-## GET /me/payouts/:id
+Подписки авто-обновляются через того же провайдера, через которого активировались. Если оплата renewal проваливается, подписка переходит в 7-дневный grace, в течение которого фичи живые, а оплата ретраится ежедневно. Через 7 дней неудачных ретраев подписка отменяется.
 
-Детали одной выплаты, включая tx-хеш для `sent` или `confirmed`.
+## Errors
 
-## POST /me/payouts/:id/cancel
-
-Отменить `pending`-выплату и вернуть $FLOW на баланс.
-
-## Ошибки
-
-| Код | Когда |
+| Code | When |
 |---|---|
-| `tier_unknown` | Неверное значение тарифа |
-| `subscription_active` | Запрос на новую активацию, когда уже активна |
-| `withdraw_too_low` | Меньше минимума рельса |
-| `withdraw_too_high` | Больше доступного к выводу баланса |
-| `wallet_not_connected` | Запрос на рельс `wallet` без подключённого SIWE-адреса |
-| `payout_immutable` | Попытка отмены `sent`/`confirmed` |
+| `tier_unknown` | Плохое значение tier |
+| `provider_unsupported` | Провайдер не включён в этом деплое |
+| `subscription_active` | Новый checkout, когда уже есть активный |
+
+<Note>
+  Withdrawals больше не обрабатываются этой группой эндпоинтов. С `$FLOW` ончейн «withdrawal» — это просто продажа токенов через `FlowProtocol.sell(...)` прямо с кошелька в USDT-пару. См. [Buy / Sell](/ru/token/buy-sell). Старые эндпоинты `/me/payouts` депрекейтнуты.
+</Note>

@@ -1,0 +1,50 @@
+---
+title: "$FLOW token"
+description: "$FLOW is a real on-chain ERC20 on BSC, deployed via the LaunchpadFactory using the dpnm template. Backed 100% by USDT, algorithmic price."
+---
+
+`$FLOW` is the platform's native token. It is **on-chain**: a real ERC20 deployed at [`0x2680...6511`](https://testnet.bscscan.com/address/0x2680b933af7a874d20954b03F38C86891A786511) on BSC testnet through `factory.launch("dpnm", ...)`.
+
+It is **not** a virtual credit, **not** a Postgres balance, **not** an off-chain unit of account. Every buy and sell is a real on-chain transaction; every fee, marketing payout and pool credit is a state change in the contracts.
+
+<Note>
+  Earlier drafts of this documentation described `FLOW` as a 1 USD = 1 FLOW off-chain credit. That model is gone. The token below is what shipped.
+</Note>
+
+## Mechanics in one paragraph
+
+`$FLOW` is paired with USDT (MockUSDT on testnet, `0x55d3...7955` on mainnet). Price is algorithmic: `pool_USDT / total_supply`. Every buy adds USDT to the pool and mints tokens; every sell burns tokens and removes USDT. Buy fee is `20%` (`10%` to phenomenal-tree marketing, `10%` retained in the pool to grow price). Sell fee is `10%` (`5%` to pool, `5%` to treasury). The fee is compensated 1:1 in **GWT** (`FlowGrowToken`), which can be redeemed for income-limit headroom. The token never leaves the protocol contract — there is no DEX graduation.
+
+## Why a closed system
+
+Every buy retains a portion of the inflow inside the pool. Supply increases, but the pool grows faster, so `pool / supply` only goes up over time. There are no liquidity providers to rug, no DEX pair to drain, and no path for a whale to dump into infinite liquidity — sells always go through the same contract that priced the buys.
+
+The trade-off: the closed system caps your daily inflow and your lifetime income per dollar invested. See [Closed system](/en/concepts/closed-system) for why this matters and [Income limit](/en/token/income-limit) for the math.
+
+## Where to read next
+
+<CardGroup cols={2}>
+  <Card title="Buy / Sell" icon="repeat" href="/en/token/buy-sell">
+    Daily limit, the 20% / 10% fees, and how the GWT compensation lands.
+  </Card>
+  <Card title="Income limit" icon="chart-no-axes-column" href="/en/token/income-limit">
+    Why a $50 buy caps your earnings at $100 — and how that limit gets burned at sale.
+  </Card>
+  <Card title="Phenomenal tree" icon="git-fork" href="/en/token/phenomenal-tree">
+    The 3 × 10 marketing tree that pays even non-inviters via spillover.
+  </Card>
+  <Card title="GWT" icon="gift" href="/en/token/gwt">
+    How the protocol token compensates fees and how to redeem GWT for income limit.
+  </Card>
+</CardGroup>
+
+## Comparison with other tokens on the platform
+
+| Surface | Template | Pair | Price | Exits to DEX? |
+|---|---|---|---|---|
+| `$FLOW` (platform token) | `dpnm` | USDT | `pool / supply` | Never |
+| Memecoin / agent token | `virtuals` | USDT | `x·y=k` curve | Yes — PancakeSwap V2 at threshold |
+
+A creator picks the template at launch. Most tokens on the Launchpad use `virtuals`. Tokens that need long-term price-only-goes-up dynamics — affiliate programs, ecosystem currencies, things you'd pay vendors with — use `dpnm`.
+
+See [Onchain → Overview](/en/onchain/overview) for the factory + template architecture.

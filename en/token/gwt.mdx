@@ -1,0 +1,85 @@
+---
+title: "GWT — Fee Compensation"
+description: "FlowGrowToken (GWT) compensates every paid fee 1:1. Redeem 1 GWT for $1.25 of income limit headroom."
+---
+
+`FlowGrowToken` — ticker **GWT** — is the second token in the `dpnm` template. It exists to compensate users for the fees they pay. Every dollar of fee paid (buy fee, sell fee, extension cost, activation cost) mints `1 GWT` to the payer.
+
+GWT is **not** tradable on the closed system, has **no** USDT pair, and is **not** an investment vehicle. It is a redemption credit: you can swap GWT for income limit headroom inside `FlowProtocol`.
+
+GWT contract on BSC testnet: [`0x4071...0783`](https://testnet.bscscan.com/address/0x40711d364b680ad7e85429bd36d7237E4e960783).
+
+## Earning GWT
+
+Every fee-bearing call mints GWT to the caller, 1:1 in dollar terms:
+
+| Action | Total fee paid | GWT minted |
+|---|---|---|
+| `buy(100 USDT)` | `$20` (`20%` of buy) | `20 GWT` |
+| `sell` worth `$100` of value | `$10` (`10%` of value) | `10 GWT` |
+| `activate(...)` | `$10` activation cost | `10 GWT` |
+| `extendTree(1)` | `$10` extension cost | `10 GWT` |
+| `extendTree(3)` | `$30` extension cost | `30 GWT` |
+
+GWT does not need to be claimed manually for buy and sell — it mints automatically. For accumulated tree-marketing payouts that owe you GWT, call `claimGWT()`:
+
+```typescript
+await flowProtocol.claimGWT();
+// any pending GWT from your active descendants' fees lands in your wallet
+```
+
+## Redeeming GWT for income limit
+
+Your income limit caps your earnings at `2x` of what you paid for `$FLOW`. If you have hit that cap and want to keep extracting value, you can redeem GWT:
+
+```typescript
+const gwtToRedeem = parseUnits("100", 18);
+// Approve GWT for FlowProtocol
+await gwt.approve(flowProtocol.address, gwtToRedeem);
+// Pay the $2 USDT redemption fee
+await usdt.approve(flowProtocol.address, parseUnits("2", 18));
+// Redeem
+await flowProtocol.buyIncomeLimitWithGWT(gwtToRedeem);
+```
+
+| Parameter | Value |
+|---|---|
+| Conversion rate | `1 GWT → $1.25` of income limit |
+| Redemption fee | `$2 USDT` per call |
+| Per-call cap | `10%` of caller's lifetime claimed income |
+
+So `100 GWT` redeemed → `$125` of income limit added to your account, costing `$2` USDT in addition.
+
+The 10% cap means a user who has earned `$10,000` lifetime can redeem at most `$1,000` of income limit per call — no flash redeems of huge GWT bags in one transaction.
+
+## Where the GWT comes from
+
+GWT is minted by the protocol at the moment a fee is paid. There is no fixed supply — it expands as the protocol earns fees. The intuition: every dollar you give the system gives you back a forward credit that can offset your future income limit ceiling.
+
+In a healthy network with continuous activity, a regular user accumulates more GWT than they need to redeem. The surplus GWT remains in their wallet — useful for future income limit top-ups, or simply held as a record of their contribution to the protocol's fee flow.
+
+## Why not pay fee compensation in USDT directly?
+
+Paying users back in USDT would defeat the purpose of fees entirely — fees exist to (a) feed the phenomenal tree, (b) retain value in the pool, (c) fund the treasury. GWT is a *future* compensation: it raises your earning ceiling, but only when you actively spend it. Most of the time, GWT just accumulates as latent headroom.
+
+## Reading GWT state
+
+```typescript
+const myGwtBalance = await gwt.balanceOf(myAddress);
+const myClaimable = await flowProtocol.claimableGWT(myAddress);
+const myLifetimeIncome = await flowProtocol.lifetimeIncome(myAddress);
+const maxRedeemPerCall = myLifetimeIncome / 10n;
+```
+
+Or via REST:
+
+```bash
+curl https://api.agentflow.website/me/flow-onchain \
+  -H "Cookie: af_session=..."
+```
+
+## See also
+
+- [Income limit](/en/token/income-limit) — the cap GWT redeems against.
+- [Buy / Sell](/en/token/buy-sell) — the fee structure that mints GWT.
+- [Phenomenal tree](/en/token/phenomenal-tree) — the marketing flow that pays GWT alongside USDT.

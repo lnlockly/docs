@@ -11,6 +11,8 @@ The AgentFlow API is a JSON-over-HTTPS interface built on Hono. It is consumed b
 https://api.agentflow.website
 ```
 
+For self-hosted deployments, replace with your own domain.
+
 ## Authentication
 
 Most endpoints require a session cookie issued by SIWE or Telegram login.
@@ -45,19 +47,19 @@ See [Auth](/en/api/auth) for the full request/response schemas.
     List, fetch, publish agents. Tool prices.
   </Card>
   <Card title="Tokens" icon="coins" href="/en/api/tokens">
-    Launchpad token CRUD, holders, trades.
+    Off-chain metadata for tokens launched via `factory.launch`. Holders and trades from the chain indexer.
   </Card>
   <Card title="Projects" icon="hammer" href="/en/api/projects">
     Attach, start, stream, subscribe.
   </Card>
-  <Card title="FLOW Balance" icon="wallet" href="/en/api/flow-balance">
-    Balance, breakdown, ledger.
+  <Card title="FLOW Onchain" icon="link" href="/en/api/flow-onchain">
+    Aggregate on-chain reads for the caller's `$FLOW`, GWT, daily limit, income limit, tree state.
   </Card>
   <Card title="Subscriptions" icon="calendar" href="/en/api/subscriptions">
-    Checkout, status, cancel, payouts.
+    Plus / Pro / Max — feature gates for marketplace + live build.
   </Card>
   <Card title="Webhooks" icon="webhook" href="/en/api/webhooks">
-    Outbound event subscriptions. HMAC-signed deliveries.
+    Inbound provider callbacks. HMAC verification.
   </Card>
 </CardGroup>
 

@@ -1,56 +1,60 @@
 ---
 title: "Quickstart"
-description: "Sign in, get $FLOW, and run your first agent in under five minutes."
+description: "Connect a wallet, pick a template, deploy your first token through the LaunchpadFactory in under five minutes."
 ---
 
-This guide walks you from a blank account to a working agent call. You will need an EVM wallet (MetaMask, Rabby, Trust, OKX) — see [Wallet setup](/en/wallet/setup) if you do not have one yet.
+This guide walks you from a blank wallet to a token deployed on BSC testnet. You will need an EVM wallet (MetaMask, Rabby, RainbowKit-supported) with the BSC testnet network added.
 
 <Steps titleSize="h3">
   <Step title="Sign in">
-    Open [agentflow.website](https://agentflow.website) and click **Connect Wallet**. AgentFlow uses Sign-In With Ethereum (SIWE): the server returns a nonce, you sign it, the server issues a JWT cookie. No on-chain transaction or gas is required to sign in.
+    Open [agentflow.website](https://agentflow.website) and click **Connect Wallet**. AgentFlow uses Sign-In With Ethereum (SIWE): the server returns a nonce, you sign it, the server issues a JWT cookie. No on-chain transaction is required to sign in.
 
-    Alternatively, sign in with Telegram via the [@AIAgentFlow_bot](https://t.me/AIAgentFlow_bot). The bot issues the same session cookie.
+    Alternatively, sign in with Telegram via [@AIAgentFlow_bot](https://t.me/AIAgentFlow_bot). The bot issues the same JWT cookie.
   </Step>
-  <Step title="Get $FLOW">
-    $FLOW is the utility credit that powers every paid action on AgentFlow. There are three ways to obtain it.
+  <Step title="Get testnet USDT">
+    Every token launched through the factory is paired with `paymentToken`. On BSC testnet that is `MockUSDT` at [`0xD8bD...F04B`](https://testnet.bscscan.com/address/0xD8bDfAAA00496EdE053210f2bcB0702C312FF04B). The Cabinet has a faucet button that mints you 1000 MockUSDT for testing. You will also need a small amount of testnet BNB for gas — grab it from any public BSC testnet faucet.
+  </Step>
+  <Step title="Pick a template">
+    Open the [Launchpad](https://agentflow.website/launchpad/new). Two templates are registered:
 
-    <CardGroup cols={3}>
-      <Card title="DEX swap" icon="arrow-left-right" href="/en/wallet/buy-flow">
-        After mainnet launch — swap BNB or USDT for $FLOW on PancakeSwap.
+    <CardGroup cols={2}>
+      <Card title="virtuals" icon="chart-line">
+        Bonding curve `x·y=k`. Trades pre-graduation on the built-in curve, then liquidity migrates to PancakeSwap V2 (BSC) at threshold. LP burned to `0xdead`. Best for memecoin-style or agent-of-marketplace tokens.
       </Card>
-      <Card title="Subscription" icon="calendar-check" href="/en/flow/subscriptions">
-        Plus / Pro / Max — sign an on-chain transaction, get a monthly $FLOW grant.
-      </Card>
-      <Card title="P2P" icon="users" href="/en/p2p/overview">
-        Buy directly from another user via the on-chain escrow (coming soon).
+      <Card title="dpnm" icon="lock">
+        Closed system. Algorithmic price `pool / supply`. Daily buy limit, income limit `1:2`, 3-branch × 10-level phenomenal tree with spillover, GWT fee compensation. **Never graduates to a DEX** — token lives inside the protocol contract forever, backed 100% by USDT.
       </Card>
     </CardGroup>
-
-    Pre-launch, $FLOW is a virtual credit. After mainnet launch (planned Q2 2026) it becomes an ERC-20 on BNB Smart Chain.
   </Step>
-  <Step title="Pick an agent">
-    Browse the [Marketplace](https://agentflow.website/marketplace). Each card shows the per-call price in $FLOW, the monetization model, and the agent's token if it has one.
+  <Step title="Deploy">
+    Fill name, ticker, and template-specific parameters. The Cabinet calls `factory.launch(template_id, params)` from your wallet. EIP-1167 minimal proxy clones cost under `$0.50` total on BSC. Within one block your token is live.
 
-    Click an agent to open its page, then click **Run** to send a request.
+    See [Create a Token](/en/launchpad/create-token) for the full parameter schema per template.
   </Step>
-  <Step title="Watch the live feed">
-    For long-running agents (Launchpad project builders, code generators), the run opens a Server-Sent Events stream. You see plan steps, tool calls, and intermediate output as the agent works.
+  <Step title="(Optional) Buy $FLOW">
+    The platform's own token, `$FLOW`, is a `dpnm` instance. Buy a position to test the buy/sell flow with daily limit + income limit:
 
-    The cost is debited from your $FLOW balance after the call settles. If the settled cost exceeds the reserved amount, the difference is auto-charged or held against your subscription.
+    1. Approve `FlowProtocol` to spend USDT on your behalf.
+    2. Call `FlowProtocol.activate(referrer)` with `10 USDT` to register on the phenomenal tree.
+    3. Call `FlowProtocol.buy(amount)` to acquire `$FLOW` tokens.
+
+    `$FLOW` and `FlowProtocol` addresses live on the [Deployments](/en/onchain/deployments) page.
   </Step>
 </Steps>
-
-<Note>
-  Subscriptions reduce per-call cost via monthly $FLOW grants. See [Subscriptions](/en/flow/subscriptions) for tier details.
-</Note>
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Launch a token" icon="rocket" href="/en/guides/launch-your-first-token">
-    Create your own Launchpad project in three steps.
+  <Card title="Closed-system economics" icon="lock" href="/en/concepts/closed-system">
+    Why `dpnm` price only goes up, how the income limit works, and where the GWT compensation comes from.
   </Card>
-  <Card title="Publish an agent" icon="upload" href="/en/guides/publish-your-agent">
-    List your own agent on the Marketplace and start earning.
+  <Card title="Bonding curve" icon="chart-line" href="/en/concepts/bonding-curve">
+    How `virtuals` priced trades work pre-graduation and what happens at threshold.
+  </Card>
+  <Card title="Phenomenal tree" icon="git-fork" href="/en/token/phenomenal-tree">
+    How the 3-branch × 10-level marketing tree pays out — and why you earn even without inviting anyone.
+  </Card>
+  <Card title="Onchain deployments" icon="link" href="/en/onchain/deployments">
+    Live contract addresses on every supported chain. Source of truth.
   </Card>
 </CardGroup>
