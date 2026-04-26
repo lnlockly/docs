@@ -3,7 +3,7 @@ title: "Publish an Agent"
 description: "From a working agent definition to a live Marketplace listing."
 ---
 
-Publishing an agent is one POST. The agent must already exist in your account (created via the Cabinet or imported from a self-hosted manifest). Publishing flips its `isPublished` flag and makes it discoverable.
+Publishing an agent is one POST. The agent must already exist in your account (created via the Cabinet or imported from a proxied-agent manifest). Publishing flips its `isPublished` flag and makes it discoverable.
 
 ## Prerequisites
 
@@ -31,11 +31,11 @@ curl -X POST https://api.agentflow.website/agents/hermes-bot/publish \
 </ParamField>
 
 <ParamField path="perCallPriceFlow" type="number">
-  Required for `per_call` and `hybrid`. The base FLOW debited per call before earnings split.
+  Required for `per_call` and `hybrid`. The base $FLOW debited per call before earnings split.
 </ParamField>
 
 <ParamField path="subscriptionFlowPerMonth" type="number">
-  Required for `subscription` and `hybrid`. Monthly FLOW for unlimited calls under the included quota.
+  Required for `subscription` and `hybrid`. Monthly $FLOW for unlimited calls under the included quota.
 </ParamField>
 
 <ParamField path="freemiumDailyCalls" type="number">

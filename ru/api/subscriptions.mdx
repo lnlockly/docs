@@ -5,21 +5,17 @@ description: "Активация тарифа, статус, выплаты."
 
 ## POST /subscriptions/checkout
 
-Инициировать checkout подписки. **Auth**: требуется.
+Запустить активацию подписки. **Auth**: требуется.
 
 <ParamField body="tier" type="string" required>
   Одно из `plus`, `pro`, `max`.
-</ParamField>
-
-<ParamField body="provider" type="string" required>
-  Одно из `cryptobot`, `platega`, `usdt_bep20`.
 </ParamField>
 
 ```bash
 curl -X POST https://api.agentflow.website/subscriptions/checkout \
   -H "Content-Type: application/json" \
   -H "Cookie: af_session=..." \
-  -d '{ "tier": "pro", "provider": "cryptobot" }'
+  -d '{ "tier": "pro" }'
 ```
 
 **Ответ**
@@ -28,13 +24,14 @@ curl -X POST https://api.agentflow.website/subscriptions/checkout \
 {
   "subscriptionId": "sub_01HQ...",
   "tier": "pro",
-  "provider": "cryptobot",
-  "checkoutUrl": "https://t.me/CryptoBot?start=invoice-...",
+  "contractAddress": "0x...",
+  "amountFlow": 100,
+  "payload": "0x...",
   "expiresAt": "2026-04-25T11:30:00Z"
 }
 ```
 
-`checkoutUrl` зависит от провайдера. Перенаправьте пользователя туда. Активация происходит на сервере, когда вебхук провайдера подтвердит платёж.
+Передайте `contractAddress`, `amountFlow` и `payload` в кошелёк — он соберёт on-chain транзакцию. Активация завершится, когда индексер увидит депозит. До запуска основной сети `contractAddress` равен `null`, и платформа списывает $FLOW из регистра напрямую.
 
 ## GET /me/subscription
 
@@ -54,34 +51,32 @@ curl https://api.agentflow.website/me/subscription \
   "monthlyGrantFlow": 100,
   "currentGrantRemainingFlow": 73.4,
   "renewsAt": "2026-05-25T11:30:00Z",
-  "provider": "cryptobot"
+  "txHash": "0x..."
 }
 ```
 
-Значения `status`: `active`, `grace` (продление не прошло, ретраим), `canceled`, `none`.
+Значения `status`: `active`, `grace` (продление не прошло, идут повторы), `canceled`, `none`.
 
 ## POST /me/payouts/request
 
-Вывести FLOW. Полный поток — в [Выплатах](/ru/flow/payouts).
+Вывести $FLOW. Полный поток — в [Выплатах](/ru/flow/payouts).
 
 <ParamField body="amountFlow" type="number" required>
-  Сумма во FLOW. Должна быть ≤ withdrawable-баланса.
+  Сумма в $FLOW. Не больше доступного к выводу баланса.
 </ParamField>
 
 <ParamField body="rail" type="string" required>
-  `usdt_bep20`, `cryptobot` или `manual`.
-</ParamField>
-
-<ParamField body="address" type="string">
-  Обязательно для `usdt_bep20`.
+  `wallet` или `manual`.
 </ParamField>
 
 ```bash
 curl -X POST https://api.agentflow.website/me/payouts/request \
   -H "Content-Type: application/json" \
   -H "Cookie: af_session=..." \
-  -d '{ "amountFlow": 100, "rail": "usdt_bep20", "address": "0x..." }'
+  -d '{ "amountFlow": 100, "rail": "wallet" }'
 ```
+
+Адрес-получатель — ваш SIWE-кошелёк.
 
 ## GET /me/payouts
 
@@ -96,20 +91,19 @@ curl https://api.agentflow.website/me/payouts \
 
 ## GET /me/payouts/:id
 
-Детали одной выплаты, включая rail-специфичный tx-хеш для `sent` или `confirmed`.
+Детали одной выплаты, включая tx-хеш для `sent` или `confirmed`.
 
 ## POST /me/payouts/:id/cancel
 
-Отменить `pending`-выплату и вернуть FLOW на баланс.
+Отменить `pending`-выплату и вернуть $FLOW на баланс.
 
 ## Ошибки
 
 | Код | Когда |
 |---|---|
 | `tier_unknown` | Неверное значение тарифа |
-| `provider_unsupported` | Провайдер не включён в этом развёртывании |
-| `subscription_active` | Новый checkout, когда уже активен |
+| `subscription_active` | Запрос на новую активацию, когда уже активна |
 | `withdraw_too_low` | Меньше минимума рельса |
-| `withdraw_too_high` | Больше withdrawable-баланса |
-| `address_required` | Не указан address для on-chain рельса |
-| `payout_immutable` | Отмена попыталась на `sent`/`confirmed` |
+| `withdraw_too_high` | Больше доступного к выводу баланса |
+| `wallet_not_connected` | Запрос на рельс `wallet` без подключённого SIWE-адреса |
+| `payout_immutable` | Попытка отмены `sent`/`confirmed` |

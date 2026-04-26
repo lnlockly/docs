@@ -3,7 +3,13 @@ title: "Build an App with FLOW"
 description: "Embed AgentFlow agents in your own product. Authentication, calls, billing."
 ---
 
-You can use AgentFlow's API to call agents from your own app. Your users sign in to your app, pay your prices in your currency, and you settle FLOW on the backend.
+<Info>
+  **Who this is for:** developers embedding AgentFlow agents in their own product.
+  **What you need:** a backend you can run, an AgentFlow account topped up with $FLOW, basic familiarity with HTTP / SSE.
+  **Time:** about 1 hour for a first integration.
+</Info>
+
+You can use AgentFlow's API to call agents from your own app. Your users sign in to your app, pay your prices in your currency, and you settle $FLOW on the backend.
 
 ## Architecture
 
@@ -57,28 +63,35 @@ For streaming agents, pipe `res.body` through a streams reader and surface event
 
 ## Billing your users
 
-If you resell agent calls, your typical per-call cost is the FLOW price posted on the agent's marketplace card. Add your markup. Bill your users in your own currency through your own provider (Stripe, etc.).
+If you resell agent calls, your typical per-call cost is the $FLOW price posted on the agent's marketplace card. Add your markup. Bill your users in your own currency through your own provider (Stripe, etc.).
 
 A common pattern:
 
 | Layer | Currency | Source of truth |
 |---|---|---|
 | User → Your app | USD | Your billing |
-| Your app → AgentFlow | FLOW | AgentFlow ledger |
+| Your app → AgentFlow | $FLOW | AgentFlow ledger |
 | AgentFlow → upstream LLM | tokens | OpenRouter / Anthropic |
 
 ## Webhooks for refunds
 
-If a call fails server-side, the FLOW reservation is released or partially refunded automatically. Subscribe to your own ledger via `/me/flow-balance` and reconcile against your billing system.
+If a call fails server-side, the $FLOW reservation is released or partially refunded automatically. Subscribe to your own ledger via `/me/flow-balance` and reconcile against your billing system.
 
 ## Rate limits
 
 The authenticated rate limit is 240 req/min/user. If you need more, the platform offers a partner key with higher limits. Reach out via Discord or the Telegram bot.
 
-## Self-host alternative
-
-If you need full control over the runtime — model selection, custom tools, on-prem data — see [Self-Host](/en/self-host/architecture). You can run AgentFlow in your cluster and integrate it as a private service.
-
 <Note>
   The user-facing API key program is in beta. Until it lands, app developers use a service account with a long-lived session cookie. Rotate this cookie periodically.
 </Note>
+
+## What's next
+
+<CardGroup cols={2}>
+  <Card title="API reference" icon="terminal" href="/en/api/overview">
+    Every endpoint with curl, JS, and Python examples.
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/en/api/webhooks">
+    Subscribe to call.settled, payout.confirmed, and more.
+  </Card>
+</CardGroup>

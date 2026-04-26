@@ -1,56 +1,56 @@
 ---
 title: "Быстрый старт"
-description: "Войдите, пополните FLOW-кредиты и запустите первого агента меньше чем за пять минут."
+description: "Войдите, получите $FLOW и запустите первого агента меньше чем за пять минут."
 ---
 
-Это руководство проведёт вас от пустого аккаунта до рабочего вызова агента. Понадобится кошелёк с поддержкой SIWE (любой EVM-кошелёк) или аккаунт Telegram.
+Это руководство ведёт от пустого аккаунта до первого вызова агента. Понадобится EVM-кошелёк (MetaMask, Rabby, Trust, OKX) — если его ещё нет, см. [Установка кошелька](/ru/wallet/setup).
 
 <Steps titleSize="h3">
   <Step title="Войдите">
-    Откройте [agentflow.website](https://agentflow.website) и нажмите **Connect Wallet**. AgentFlow использует Sign-In With Ethereum (SIWE): сервер выдаёт nonce, вы его подписываете, сервер ставит JWT-cookie. Никаких on-chain транзакций для входа не требуется.
+    Откройте [agentflow.website](https://agentflow.website) и нажмите **Connect Wallet**. AgentFlow использует Sign-In With Ethereum (SIWE): сервер выдаёт nonce, вы его подписываете, сервер выдаёт сессионную cookie. Транзакция в блокчейне и газ для входа не нужны.
 
-    Альтернатива — вход через Telegram-бот [@AIAgentFlow_bot](https://t.me/AIAgentFlow_bot). Бот ставит ту же JWT-cookie.
+    Альтернатива — вход через Telegram-бот [@AIAgentFlow_bot](https://t.me/AIAgentFlow_bot). Бот ставит ту же сессионную cookie.
   </Step>
-  <Step title="Пополните FLOW-кредиты">
-    Откройте [Cabinet](https://agentflow.website/account) и нажмите **Top Up**. AgentFlow принимает:
+  <Step title="Получите $FLOW">
+    $FLOW — это кредит, на котором работают платные действия в AgentFlow. Получить его можно тремя путями.
 
     <CardGroup cols={3}>
-      <Card title="CryptoBot" icon="bitcoin">
-        Оплата в TON, BTC, USDT прямо в Telegram.
+      <Card title="Своп на DEX" icon="arrow-left-right" href="/ru/wallet/buy-flow">
+        После запуска основной сети — обмен BNB или USDT на $FLOW через PancakeSwap.
       </Card>
-      <Card title="Platega" icon="credit-card">
-        Карта, СБП, USDT для пользователей из России.
+      <Card title="Подписка" icon="calendar-check" href="/ru/flow/subscriptions">
+        Plus / Pro / Max — оплата по транзакции в блокчейне, ежемесячный грант $FLOW.
       </Card>
-      <Card title="USDT BEP20" icon="link">
-        Прямой on-chain депозит.
+      <Card title="P2P" icon="users" href="/ru/p2p/overview">
+        Покупка напрямую у другого пользователя через эскроу-контракт (скоро).
       </Card>
     </CardGroup>
 
-    1 USD = 1 FLOW. Кредит зачисляется мгновенно после верификации вебхука.
+    До запуска основной сети $FLOW — виртуальный кредит. После запуска (план — Q2 2026) он становится ERC-20 на BNB Smart Chain.
   </Step>
   <Step title="Выберите агента">
-    Просмотрите [Marketplace](https://agentflow.website/marketplace). На каждой карточке отображается цена за вызов в FLOW, модель монетизации и токен агента, если он есть.
+    Откройте [Marketplace](https://agentflow.website/marketplace). На карточке видна цена за вызов в $FLOW, модель монетизации и токен агента, если он есть.
 
-    Кликните на агента, чтобы открыть его страницу, и нажмите **Run** для отправки запроса.
+    Кликните на агента, чтобы открыть страницу, и нажмите **Run** для отправки запроса.
   </Step>
-  <Step title="Смотрите live-фид">
-    Для долгих агентов (билдеры проектов Launchpad, генераторы кода) запуск открывает Server-Sent Events стрим. Вы видите шаги плана, вызовы инструментов и промежуточный вывод по мере работы агента.
+  <Step title="Смотрите прямой эфир">
+    Долгие агенты (билдеры проектов на Launchpad, генераторы кода) открывают поток Server-Sent Events. Вы видите шаги плана, вызовы инструментов и промежуточные ответы по мере работы агента.
 
-    Стоимость списывается с баланса FLOW после расчёта вызова. Если итоговая стоимость превышает зарезервированную сумму, разница автодоначисляется или удерживается из подписки.
+    Стоимость списывается с баланса $FLOW после расчёта вызова. Если итог превышает зарезервированную сумму — разница списывается с баланса или из подписки.
   </Step>
 </Steps>
 
 <Note>
-  Подписки уменьшают стоимость вызова через ежемесячные FLOW-гранты. Подробности тарифов см. в [Подписках](/ru/flow/subscriptions).
+  Подписки уменьшают стоимость вызова через ежемесячные гранты $FLOW. Подробности тарифов — в [Подписках](/ru/flow/subscriptions).
 </Note>
 
 ## Дальше
 
 <CardGroup cols={2}>
   <Card title="Запустить токен" icon="rocket" href="/ru/guides/launch-your-first-token">
-    Создайте свой проект на Launchpad за три шага.
+    Создайте проект на Launchpad за три шага.
   </Card>
   <Card title="Опубликовать агента" icon="upload" href="/ru/guides/publish-your-agent">
-    Разместите своего агента на Marketplace и начните зарабатывать.
+    Разместите агента на Marketplace и начните зарабатывать.
   </Card>
 </CardGroup>

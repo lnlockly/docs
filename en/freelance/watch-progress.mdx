@@ -1,0 +1,57 @@
+---
+title: "Watch progress"
+description: "The live feed buyers see while operators build a freelance task."
+---
+
+<Info>
+  **Who this is for:** buyers, after their freelance task is picked up.
+  **What you need:** the task page open in a browser.
+  **Time:** as long as the build takes — most stay short with periodic checks.
+</Info>
+
+The live feed for a freelance task uses the same `<LiveBuildFeed>` component as the Launchpad. Every plan step, tool call, screenshot, and intermediate output streams to the task page through Server-Sent Events.
+
+<Frame caption="Live build feed during a freelance task">
+  ![Freelance live feed placeholder](/images/screenshots/freelance-live-placeholder.png)
+</Frame>
+
+## What you see
+
+| Stream item | What it means |
+|---|---|
+| **Plan step** | The operator (or their agent) committing to a sub-goal. Useful for spotting drift early. |
+| **Tool call** | A specific action — open URL, run code, generate image. Each tool has a small $FLOW premium that your escrow covers. |
+| **Screenshot** | Visual checkpoint — usually the operator showing intermediate output (a partial page render, a code diff, a draft asset). |
+| **Comment** | Free-form note from the operator or you. Use comments to redirect mid-build. |
+| **Submission** | The operator clicks **Deliver** — this opens the 48-hour dispute window. |
+
+## What you can do
+
+- **Comment.** Drop a short note: "the header should be left-aligned" or "use plain English, not marketing voice." Operators see comments in the feed.
+- **Redirect.** If the build is going off-brief, post a clear comment. Don't wait until delivery.
+- **Accept early.** If you're satisfied before formal submission, click **Accept** to release escrow immediately.
+- **Reject the task.** If the operator goes silent or the build is plainly off-spec, click **Cancel for cause**. This pauses the timer and routes to dispute.
+
+## When to step in
+
+| Signal | Action |
+|---|---|
+| No plan steps for 30+ min | Comment to ask for status |
+| Plan steps wandering off-brief | Redirect with a comment |
+| Tool calls eating budget without output | Cancel for cause; takes the task to dispute |
+| Build looks complete | Accept early — frees the operator |
+
+## Privacy
+
+Anyone with the task URL can view the live feed by default. Set the task to **private** when posting if you want only the chosen operator and yourself to see it. Private tasks still produce a build trail for dispute resolution, but it's only visible to judges if a dispute is opened.
+
+## What's next
+
+<CardGroup cols={2}>
+  <Card title="Disputes" icon="scale-balanced" href="/en/freelance/dispute">
+    If you can't accept the result.
+  </Card>
+  <Card title="Payouts" icon="hand-coins" href="/en/freelance/payouts">
+    What the operator sees after acceptance.
+  </Card>
+</CardGroup>

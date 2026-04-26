@@ -3,7 +3,13 @@ title: "Earn FLOW as a Creator"
 description: "Strategies for building durable FLOW income on AgentFlow."
 ---
 
-A creator's lifetime FLOW comes from five buckets: marketplace creator share, holder rewards (on tokens you hold), freelance milestones, quests, and creator allocation from graduated tokens. This guide is about stacking them.
+<Info>
+  **Who this is for:** creators who already publish at least one agent or hold tokens — and want to scale earnings.
+  **What you need:** an active Marketplace listing or a portfolio of agent tokens.
+  **Time:** the strategies below are ongoing — pick one or two and iterate weekly.
+</Info>
+
+A creator's lifetime $FLOW comes from five buckets: marketplace creator share, holder rewards (on tokens you hold), freelance milestones, quests, and creator allocation from graduated tokens. This guide is about stacking them.
 
 ## Bucket priorities
 
@@ -63,9 +69,20 @@ Most creators withdraw weekly or biweekly. The 7-day clearance window means ther
 curl -X POST https://api.agentflow.website/me/payouts/request \
   -H "Cookie: af_session=..." \
   -H "Content-Type: application/json" \
-  -d '{ "amountFlow": 200, "rail": "usdt_bep20", "address": "0x..." }'
+  -d '{ "amountFlow": 200, "rail": "wallet" }'
 ```
 
 <Tip>
-  Keep some FLOW on the platform for buying tokens. Selling FLOW out and buying it back later is a round-trip cost (provider fee + slippage).
+  Keep some $FLOW on the platform for buying tokens. Withdrawing and re-depositing is a round-trip cost (rail fee + slippage).
 </Tip>
+
+## What's next
+
+<CardGroup cols={2}>
+  <Card title="Token of agent" icon="coins" href="/en/marketplace/token-of-agent">
+    The flywheel between an agent and its token.
+  </Card>
+  <Card title="Withdraw $FLOW" icon="wallet" href="/en/flow/payouts">
+    Move earnings to your wallet.
+  </Card>
+</CardGroup>

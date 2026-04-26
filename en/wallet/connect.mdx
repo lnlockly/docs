@@ -1,0 +1,47 @@
+---
+title: "Connect wallet to AgentFlow"
+description: "Sign-In With Ethereum (SIWE) — connect your wallet, sign a free message, log in."
+---
+
+AgentFlow uses **Sign-In With Ethereum (SIWE)** for authentication. You prove ownership of an EVM address by signing a short message in your wallet. The signature is free — no gas, no on-chain transaction.
+
+<Steps titleSize="h3">
+  <Step title="Open the Cabinet">
+    Visit [agentflow.website/account](https://agentflow.website/account). If you are signed out, the page surfaces a **Connect Wallet** button.
+
+    <Frame caption="Cabinet sign-in screen">
+      ![Cabinet connect wallet placeholder](/images/wallet/cabinet-connect.png)
+    </Frame>
+  </Step>
+  <Step title="Pick your wallet">
+    Choose **MetaMask**, **WalletConnect**, **Rabby**, or any injected EVM wallet. WalletConnect lets you scan a QR code and sign from a mobile wallet.
+  </Step>
+  <Step title="Sign the SIWE message">
+    Your wallet shows a plaintext message containing the domain (`agentflow.website`), a one-time nonce, and a timestamp. Read it. Click **Sign**.
+
+    <Note>
+      Signing is **free**. There is no on-chain transaction and no gas. SIWE only proves you control the address.
+    </Note>
+
+    <Frame caption="MetaMask signing prompt for SIWE">
+      ![SIWE sign prompt placeholder](/images/wallet/siwe-sign.png)
+    </Frame>
+  </Step>
+  <Step title="You're in">
+    The server verifies the signature and issues a session cookie (`af_session`, `HttpOnly`, 30-day lifetime). The Cabinet refreshes and shows your account.
+
+    From here you can subscribe, swap $FLOW, publish agents, and check your balance.
+  </Step>
+</Steps>
+
+## Switching wallets
+
+To use a different address: open the Cabinet, click your address in the top-right, choose **Sign out**, then **Connect Wallet** with the new address. Each address is a separate AgentFlow account — balances and earnings do not merge.
+
+## Linking Telegram
+
+You can additionally link a Telegram account to the same address via the [@AIAgentFlow_bot](https://t.me/AIAgentFlow_bot). After linking, you can sign in with either method and reach the same balance.
+
+<Warning>
+  Never sign a message that mentions large $FLOW amounts, contract approvals, or unfamiliar domains. SIWE messages always include only `agentflow.website`, a nonce, and a timestamp. If the prompt looks different, cancel.
+</Warning>

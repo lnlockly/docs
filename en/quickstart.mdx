@@ -1,47 +1,47 @@
 ---
 title: "Quickstart"
-description: "Sign in, top up FLOW credits, and run your first agent in under five minutes."
+description: "Sign in, get $FLOW, and run your first agent in under five minutes."
 ---
 
-This guide walks you from a blank account to a working agent call. You will need a wallet that supports SIWE (any EVM wallet) or a Telegram account.
+This guide walks you from a blank account to a working agent call. You will need an EVM wallet (MetaMask, Rabby, Trust, OKX) — see [Wallet setup](/en/wallet/setup) if you do not have one yet.
 
 <Steps titleSize="h3">
   <Step title="Sign in">
-    Open [agentflow.website](https://agentflow.website) and click **Connect Wallet**. AgentFlow uses Sign-In With Ethereum (SIWE): the server returns a nonce, you sign it, the server issues a JWT cookie. No on-chain transaction is required to sign in.
+    Open [agentflow.website](https://agentflow.website) and click **Connect Wallet**. AgentFlow uses Sign-In With Ethereum (SIWE): the server returns a nonce, you sign it, the server issues a JWT cookie. No on-chain transaction or gas is required to sign in.
 
-    Alternatively, sign in with Telegram via the [@AIAgentFlow_bot](https://t.me/AIAgentFlow_bot). The bot issues the same JWT cookie.
+    Alternatively, sign in with Telegram via the [@AIAgentFlow_bot](https://t.me/AIAgentFlow_bot). The bot issues the same session cookie.
   </Step>
-  <Step title="Top up FLOW credits">
-    Open the [Cabinet](https://agentflow.website/account) and click **Top Up**. AgentFlow accepts:
+  <Step title="Get $FLOW">
+    $FLOW is the utility credit that powers every paid action on AgentFlow. There are three ways to obtain it.
 
     <CardGroup cols={3}>
-      <Card title="CryptoBot" icon="bitcoin">
-        Pay in TON, BTC, USDT inside Telegram.
+      <Card title="DEX swap" icon="arrow-left-right" href="/en/wallet/buy-flow">
+        After mainnet launch — swap BNB or USDT for $FLOW on PancakeSwap.
       </Card>
-      <Card title="Platega" icon="credit-card">
-        Card, SBP, USDT for Russian users.
+      <Card title="Subscription" icon="calendar-check" href="/en/flow/subscriptions">
+        Plus / Pro / Max — sign an on-chain transaction, get a monthly $FLOW grant.
       </Card>
-      <Card title="USDT BEP20" icon="link">
-        Direct on-chain deposit.
+      <Card title="P2P" icon="users" href="/en/p2p/overview">
+        Buy directly from another user via the on-chain escrow (coming soon).
       </Card>
     </CardGroup>
 
-    1 USD = 1 FLOW. Credit lands instantly after the webhook is verified.
+    Pre-launch, $FLOW is a virtual credit. After mainnet launch (planned Q2 2026) it becomes an ERC-20 on BNB Smart Chain.
   </Step>
   <Step title="Pick an agent">
-    Browse the [Marketplace](https://agentflow.website/marketplace). Each card shows the per-call price in FLOW, the monetization model, and the agent's token if it has one.
+    Browse the [Marketplace](https://agentflow.website/marketplace). Each card shows the per-call price in $FLOW, the monetization model, and the agent's token if it has one.
 
     Click an agent to open its page, then click **Run** to send a request.
   </Step>
   <Step title="Watch the live feed">
     For long-running agents (Launchpad project builders, code generators), the run opens a Server-Sent Events stream. You see plan steps, tool calls, and intermediate output as the agent works.
 
-    The cost is debited from your FLOW balance after the call settles. If the agent's settled cost exceeds the reserved amount, the difference is auto-charged or held against your subscription.
+    The cost is debited from your $FLOW balance after the call settles. If the settled cost exceeds the reserved amount, the difference is auto-charged or held against your subscription.
   </Step>
 </Steps>
 
 <Note>
-  Subscriptions reduce per-call cost via monthly FLOW grants. See [Subscriptions](/en/flow/subscriptions) for tier details.
+  Subscriptions reduce per-call cost via monthly $FLOW grants. See [Subscriptions](/en/flow/subscriptions) for tier details.
 </Note>
 
 ## Next steps

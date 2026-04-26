@@ -53,6 +53,14 @@
                 ]
               },
               {
+                "group": "Wallet",
+                "pages": [
+                  "en/wallet/setup",
+                  "en/wallet/buy-flow",
+                  "en/wallet/connect"
+                ]
+              },
+              {
                 "group": "Launchpad",
                 "pages": [
                   "en/launchpad/overview",
@@ -84,6 +92,12 @@
                 ]
               },
               {
+                "group": "P2P (coming soon)",
+                "pages": [
+                  "en/p2p/overview"
+                ]
+              },
+              {
                 "group": "Guides",
                 "pages": [
                   "en/guides/launch-your-first-token",
@@ -111,19 +125,6 @@
                 ]
               }
             ]
-          },
-          {
-            "tab": "Self-Host",
-            "groups": [
-              {
-                "group": "Operate Your Own Instance",
-                "pages": [
-                  "en/self-host/architecture",
-                  "en/self-host/kubernetes",
-                  "en/self-host/env-variables"
-                ]
-              }
-            ]
           }
         ],
         "navbar": {
@@ -147,7 +148,6 @@
           "socials": {
             "x": "https://x.com/agentflow",
             "telegram": "https://t.me/AIAgentFlow_bot",
-            "github": "https://github.com/lnlockly/agentflow-api",
             "discord": "https://discord.gg/agentflow"
           },
           "links": [
@@ -156,15 +156,14 @@
               "items": [
                 { "label": "Launchpad", "href": "/en/launchpad/overview" },
                 { "label": "Marketplace", "href": "/en/marketplace/overview" },
-                { "label": "FLOW Credits", "href": "/en/flow/overview" }
+                { "label": "FLOW Credits", "href": "/en/flow/overview" },
+                { "label": "Wallet", "href": "/en/wallet/setup" }
               ]
             },
             {
               "header": "Developers",
               "items": [
-                { "label": "API Reference", "href": "/en/api/overview" },
-                { "label": "Self-Host", "href": "/en/self-host/architecture" },
-                { "label": "GitHub", "href": "https://github.com/lnlockly/agentflow-api" }
+                { "label": "API Reference", "href": "/en/api/overview" }
               ]
             },
             {
@@ -201,6 +200,14 @@
                 ]
               },
               {
+                "group": "Кошелёк",
+                "pages": [
+                  "ru/wallet/setup",
+                  "ru/wallet/buy-flow",
+                  "ru/wallet/connect"
+                ]
+              },
+              {
                 "group": "Launchpad",
                 "pages": [
                   "ru/launchpad/overview",
@@ -232,6 +239,12 @@
                 ]
               },
               {
+                "group": "P2P (скоро)",
+                "pages": [
+                  "ru/p2p/overview"
+                ]
+              },
+              {
                 "group": "Руководства",
                 "pages": [
                   "ru/guides/launch-your-first-token",
@@ -259,19 +272,6 @@
                 ]
               }
             ]
-          },
-          {
-            "tab": "Self-host",
-            "groups": [
-              {
-                "group": "Свой инстанс",
-                "pages": [
-                  "ru/self-host/architecture",
-                  "ru/self-host/kubernetes",
-                  "ru/self-host/env-variables"
-                ]
-              }
-            ]
           }
         ],
         "navbar": {
@@ -295,7 +295,6 @@
           "socials": {
             "x": "https://x.com/agentflow",
             "telegram": "https://t.me/AIAgentFlow_bot",
-            "github": "https://github.com/lnlockly/agentflow-api",
             "discord": "https://discord.gg/agentflow"
           },
           "links": [
@@ -304,15 +303,14 @@
               "items": [
                 { "label": "Launchpad", "href": "/ru/launchpad/overview" },
                 { "label": "Marketplace", "href": "/ru/marketplace/overview" },
-                { "label": "FLOW-кредиты", "href": "/ru/flow/overview" }
+                { "label": "FLOW-кредиты", "href": "/ru/flow/overview" },
+                { "label": "Кошелёк", "href": "/ru/wallet/setup" }
               ]
             },
             {
               "header": "Разработчикам",
               "items": [
-                { "label": "Справочник API", "href": "/ru/api/overview" },
-                { "label": "Self-host", "href": "/ru/self-host/architecture" },
-                { "label": "GitHub", "href": "https://github.com/lnlockly/agentflow-api" }
+                { "label": "Справочник API", "href": "/ru/api/overview" }
               ]
             },
             {
@@ -337,11 +335,6 @@
           "anchor": "Marketplace",
           "href": "https://agentflow.website/marketplace",
           "icon": "store"
-        },
-        {
-          "anchor": "GitHub",
-          "href": "https://github.com/lnlockly/agentflow-api",
-          "icon": "github"
         }
       ]
     }

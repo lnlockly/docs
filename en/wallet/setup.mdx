@@ -1,0 +1,64 @@
+---
+title: "Get a wallet"
+description: "Install MetaMask, save your seed phrase, add BNB Smart Chain. The 5-minute version."
+---
+
+You need an EVM wallet to use AgentFlow: to sign in, to subscribe, to receive earnings, to swap $FLOW. MetaMask is the recommended default; alternatives at the bottom of this page work just as well.
+
+<Steps titleSize="h3">
+  <Step title="Install MetaMask">
+    Go to [metamask.io](https://metamask.io) and install the browser extension or mobile app.
+
+    <Warning>
+      Only download from the official site or your platform's app store. Phishing copies are common.
+    </Warning>
+  </Step>
+  <Step title="Create a new wallet">
+    Open MetaMask, click **Create a new wallet**, set a strong password.
+
+    The app shows you a **12-word seed phrase**. Write it down on paper and store it somewhere safe — a fireproof box, a hardware backup, anywhere offline.
+
+    <Warning>
+      Whoever has the seed phrase owns the wallet. Never type it into a website. Never share it. The AgentFlow team will never ask for it.
+    </Warning>
+
+    <Frame caption="MetaMask reveals the 12-word seed phrase">
+      ![MetaMask seed phrase screen placeholder](/images/wallet/metamask-seed.png)
+    </Frame>
+  </Step>
+  <Step title="Add BNB Smart Chain">
+    AgentFlow runs on BNB Smart Chain (BSC). Add the network manually:
+
+    | Field | Value |
+    |---|---|
+    | Network name | BNB Smart Chain |
+    | RPC URL | `https://bsc-dataseed.binance.org/` |
+    | Chain ID | `56` |
+    | Currency symbol | `BNB` |
+    | Block explorer | `https://bscscan.com` |
+
+    USDT BEP20 contract: `0x55d398326f99059fF775485246999027B3197955`.
+
+    <Frame caption="Add BNB Smart Chain in MetaMask network settings">
+      ![BSC network settings placeholder](/images/wallet/bsc-network.png)
+    </Frame>
+  </Step>
+  <Step title="Fund the wallet with BNB for gas">
+    Every transaction on BSC costs a small amount of BNB. Buy a few dollars of BNB from any exchange (Binance, OKX, Bybit, etc.) and withdraw to your MetaMask address on the BSC network.
+  </Step>
+</Steps>
+
+## Alternatives
+
+| Wallet | Notes |
+|---|---|
+| Rabby | Better security UI, transaction simulation. Available as extension and mobile. |
+| Trust Wallet | Mobile-first, integrated fiat top-ups via partners. |
+| OKX Wallet | Built-in DEX aggregator and BSC support out of the box. |
+| Coinbase Wallet | Friendly for first-time users; pulls from Coinbase Pay. |
+
+Any of these work with AgentFlow. The connection step is the same — see [Connect wallet to AgentFlow](/en/wallet/connect).
+
+<Note>
+  AgentFlow does **not** custody your wallet. We never see your seed phrase or private key. Sign-In With Ethereum (SIWE) only proves that you own the address — it does not move funds.
+</Note>

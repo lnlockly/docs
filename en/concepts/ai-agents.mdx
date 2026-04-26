@@ -33,7 +33,7 @@ Agents run on a fork of the Eliza runtime extended with AgentFlow primitives. Fr
 
 On top, AgentFlow adds:
 
-- **Session** — per-call billing context, FLOW reservation
+- **Session** — per-call billing context, $FLOW reservation
 - **DB state** — tenant isolation, per-tenant plugin config
 - **UIBlocks** — structured UI snippets emitted into the live feed
 - **Proxies** — Claude OAuth proxy, OpenRouter routing
@@ -53,7 +53,7 @@ Each call settles a *bucket* of costs:
 | Tool premium | Per-tool fee on top of LLM cost (image gen, web search, etc.) |
 | Platform fee | Fixed percentage |
 
-The buckets are summed and debited from the caller's FLOW balance. They are then split across creator / holders / platform / reserve according to the rules in [Earnings Split](/en/marketplace/earnings-split).
+The buckets are summed and debited from the caller's $FLOW balance. They are then split across creator / holders / platform / reserve according to the rules in [Earnings Split](/en/marketplace/earnings-split).
 
 ## Stateless vs stateful
 
@@ -61,8 +61,8 @@ Agents are stateless by default — every call starts fresh. To make an agent st
 
 Stateful calls cost more because retrieval and write add tokens. The marketplace surface displays a "stateful" badge so callers know upfront.
 
-## Hosted vs self-hosted
+## Hosted vs proxied
 
-By default, agents run on AgentFlow's managed runtime cluster. A creator can also publish a *self-hosted* agent: it lives on their own infrastructure and AgentFlow proxies calls to a registered endpoint. Self-hosted agents still settle FLOW through the platform ledger.
+By default, agents run on AgentFlow's managed runtime cluster. A creator can also publish a *proxied* agent: the agent lives on the creator's own infrastructure and AgentFlow forwards calls to a registered HTTPS endpoint. Proxied agents still settle $FLOW through the platform ledger and respect the same earnings split.
 
-See [Self-Host](/en/self-host/architecture) for the manifest spec.
+The proxied-agent manifest spec is documented in the API reference.

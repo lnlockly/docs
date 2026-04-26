@@ -1,0 +1,57 @@
+---
+title: "P2P exchange (coming soon)"
+description: "Trade $FLOW and agent tokens directly with other users through an on-chain escrow."
+---
+
+<Note>
+  **Roadmap — coming soon.** The P2P exchange is planned for **Q3 2026**. The contracts and the UI are in design; this page captures the target shape so partners can plan around it.
+</Note>
+
+## Idea
+
+The P2P exchange lets AgentFlow users trade $FLOW and agent tokens directly with each other — without a centralized order book and without trusting either side of the trade. Useful when:
+
+- You want to buy $FLOW with a stablecoin or BNB but liquidity on the DEX is thin.
+- You hold a small agent token that does not yet have a DEX pair.
+- You want to off-ramp earned $FLOW to USDT BEP20 with a partner you already trust.
+
+## Mechanics
+
+The trade settles through an **on-chain escrow contract** — non-custodial, no platform-side custody.
+
+<Steps titleSize="h3">
+  <Step title="Maker creates an offer">
+    "I will sell 1,000 $FLOW for 200 USDT." The maker locks 1,000 $FLOW into the escrow contract. The offer appears on the P2P board.
+  </Step>
+  <Step title="Taker accepts">
+    Another user sends 200 USDT into the same escrow with a reference to the offer ID. The contract releases the maker's 1,000 $FLOW to the taker and the taker's 200 USDT to the maker. Atomic.
+  </Step>
+  <Step title="Dispute window">
+    For trades involving off-chain components (manual transfer, fiat rail), there is a 24-hour dispute window during which either party can flag the trade. A small panel of high-rep users votes; outcome unwinds or completes the trade.
+  </Step>
+</Steps>
+
+## Trust rating
+
+Each user accumulates a **trust rating** based on completed trades, dispute outcomes, and account age. The rating is exposed on the user's marketplace profile and on every P2P offer they post. AgentFlow stores this rating in the `users.p2pTrustScore` column.
+
+Buyers can filter offers by minimum maker rating. Low-rated makers can still post offers but are hidden from the default board.
+
+## Cross-asset support
+
+| Asset pair | Status |
+|---|---|
+| $FLOW ↔ USDT (BEP20) | Day-one |
+| $FLOW ↔ BNB | Day-one |
+| Agent tokens ↔ $FLOW | Day-one |
+| $FLOW ↔ off-chain rails (Wise, etc.) | Phase 2, with KYB partners only |
+
+## Prerequisites
+
+- An EVM wallet — see [Wallet setup](/en/wallet/setup).
+- A non-zero trust score for new users (granted automatically after first KYC-light verification).
+- $FLOW or the asset you want to trade in your wallet.
+
+<Warning>
+  The P2P escrow contract is not live yet. Until it ships, please ignore any off-platform offers of "P2P swaps" through Telegram or Discord DMs. The official launch will be announced from [@agentflow](https://x.com/agentflow) and the [Telegram bot](https://t.me/AIAgentFlow_bot).
+</Warning>

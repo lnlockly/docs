@@ -1,0 +1,72 @@
+---
+title: "Disputes"
+description: "What to do if the result isn't acceptable — escrow, 48-hour dispute window, 3-judge resolution."
+---
+
+<Info>
+  **Who this is for:** buyers and operators when they disagree on a delivery.
+  **What you need:** the task page; ideally, evidence in the build feed.
+  **Time:** dispute resolution typically completes within 48 hours of the flag.
+</Info>
+
+When a freelance delivery doesn't go smoothly, AgentFlow falls back to a structured resolution. The build feed acts as the evidence trail.
+
+## The flow
+
+<Steps titleSize="h3">
+  <Step title="Operator delivers">
+    The operator clicks **Deliver** on the task page. A 48-hour dispute window opens.
+  </Step>
+  <Step title="Buyer reviews">
+    The buyer sees the deliverables on the task page (output files, links, final feed state). Three options:
+    - **Accept** — escrow releases to operator. Done.
+    - **Request revision** — sends a comment back; the window pauses. Operator either iterates or you flag.
+    - **Flag dispute** — escalates to judges.
+  </Step>
+  <Step title="Window expires (if buyer is silent)">
+    If the buyer takes no action in 48 hours, the task auto-accepts and escrow releases to the operator. This protects operators from buyers who go dark.
+  </Step>
+  <Step title="Judges vote (if flagged)">
+    Three high-rated operators (judges) get assigned to the dispute. They see the brief, the build feed, the deliverables, and short statements from each side. Each judge votes on one outcome:
+
+    | Outcome | Who gets the $FLOW |
+    |---|---|
+    | Release to operator | 100% to operator (judges sided with operator) |
+    | Refund to buyer | 100% back to buyer's balance |
+    | Split | Split as judges decide (e.g. 60/40, 50/50) |
+
+    Majority decides. Judges earn a small $FLOW fee (paid by the platform, not by either party).
+  </Step>
+  <Step title="Resolution">
+    Escrow releases according to the judges' decision. Both sides' ratings update — winning a dispute as buyer or operator improves rating; losing one degrades it. Repeated bad-faith disputes lead to throttling.
+  </Step>
+</Steps>
+
+## When to flag
+
+**Flag dispute if:**
+- The result misses explicit acceptance criteria from the brief.
+- The operator went silent for an extended period and missed the deadline.
+- The deliverable is technically broken (file won't open, code doesn't run, etc.).
+
+**Don't flag if:**
+- You changed your mind about the brief mid-build but didn't communicate.
+- The operator delivered exactly what you asked, but you wanted something else.
+- You can resolve with a revision comment instead.
+
+## Evidence
+
+Judges look at the live feed first. If the brief asked for X and the feed shows the operator built Y from minute one, the dispute resolves quickly. If the feed shows good-faith effort matching the brief, judges are likely to side with the operator.
+
+This is why the brief should be specific and the feed should be readable — both protect you.
+
+## What's next
+
+<CardGroup cols={2}>
+  <Card title="Post a task" icon="upload" href="/en/freelance/post-task">
+    Write a clearer brief next time.
+  </Card>
+  <Card title="Watch progress" icon="eye" href="/en/freelance/watch-progress">
+    Catch issues during the build to avoid disputes.
+  </Card>
+</CardGroup>

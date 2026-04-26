@@ -7,7 +7,7 @@ Graduation is the moment a Launchpad token transitions from internal bonding cur
 
 ## Trigger
 
-The chain indexer watches each token's curve every block. When the locked FLOW value reaches the graduation threshold (default 42,000 FLOW), the system:
+The chain indexer watches each token's curve every block. When the locked $FLOW value reaches the graduation threshold (default 42,000 $FLOW), the system:
 
 <Steps titleSize="h3">
   <Step title="Snapshot holders">
@@ -17,7 +17,7 @@ The chain indexer watches each token's curve every block. When the locked FLOW v
     Buys and sells on the bonding curve are halted. The curve contract is permanently sealed.
   </Step>
   <Step title="Migrate liquidity">
-    Locked FLOW is converted to ETH (or chain-native asset) and paired with the platform's 5% liquidity allocation. The pair is seeded on the DEX.
+    Locked $FLOW is converted to ETH (or chain-native asset) and paired with the platform's 5% liquidity allocation. The pair is seeded on the DEX.
   </Step>
   <Step title="Lock LP">
     LP tokens are locked or burned according to the policy chosen at token launch.
@@ -44,7 +44,7 @@ After graduation:
 If 30 days pass without reaching the threshold, the token transitions to **Failed**:
 
 - Curve is sealed.
-- Holders may redeem their balance for FLOW at the curve's last price (a "rage exit").
+- Holders may redeem their balance for $FLOW at the curve's last price (a "rage exit").
 - Creator allocation is forfeited.
 - The project's agents stop receiving compute budget.
 
@@ -72,5 +72,5 @@ curl https://api.agentflow.website/tokens/hermes-dispatch
 `estimatedTimeToGraduation` is computed from the recent buy velocity and resets if velocity drops.
 
 <Note>
-  The DEX target chain and router are configured per platform deployment. The reference deployment uses BNB Smart Chain via PancakeSwap; self-hosted deployments may target other chains.
+  Graduation seeds liquidity on PancakeSwap (BNB Smart Chain). The router and pair-creation parameters are fixed at the platform level.
 </Note>

@@ -1,81 +1,57 @@
 ---
 title: "Вебхуки"
-description: "Входящие callback'и от провайдеров CryptoBot и Platega. HMAC-верификация."
+description: "Исходящие события подписок и внутренние ручки между сервисами."
 ---
 
-AgentFlow потребляет вебхуки от платёжных провайдеров для подтверждения депозитов и платежей по подпискам. Хендлеры живут под `/payments/*` и `/webhooks/*` и публичны (с rate-лимитом) — они верифицируют подлинность отправителя через HMAC.
+AgentFlow отправляет исходящие вебхуки на события вашего аккаунта (вызов рассчитан, выплата подтверждена, начислен грант подписки) и держит небольшой набор внутренних ручек для соседних сервисов. Входящих вебхуков от платёжных провайдеров нет — оплата идёт on-chain через контракт подписки и индексер блокчейна.
 
-Эти эндпоинты **входящие** — вы их не вызываете как интегратор. Они описаны, чтобы можно было сверить контракт и адаптировать при self-host.
+## Исходящие события
 
-## POST /payments/cryptobot/webhook
+Подпишите URL через Cabinet (**Settings → Webhooks**) или через API:
 
-Принимает события инвойсов CryptoBot.
+```bash
+curl -X POST https://api.agentflow.website/me/webhooks \
+  -H "Content-Type: application/json" \
+  -H "Cookie: af_session=..." \
+  -d '{
+    "url": "https://your-app.example/agentflow",
+    "events": ["call.settled", "payout.confirmed", "subscription.granted"]
+  }'
+```
 
-**Auth**: HMAC. Провайдер подписывает тело API-токеном бота; хендлер проверяет через заголовок `crypto-bot-api-signature`.
+| Событие | Что в payload |
+|---|---|
+| `call.settled` | `agentSlug`, `flowDebited`, `creatorShare`, `holderShare` |
+| `payout.confirmed` | `payoutId`, `txHash`, `netFlow` |
+| `subscription.granted` | `tier`, `monthlyGrantFlow`, `renewsAt` |
+| `token.graduated` | `tokenSlug`, `dexPairAddress` |
 
-```http
-POST /payments/cryptobot/webhook
-Host: api.agentflow.website
-Content-Type: application/json
-crypto-bot-api-signature: <hex>
+## Подпись и проверка
 
-{
-  "update_id": 12345,
-  "update_type": "invoice_paid",
-  "request_date": "2026-04-25T11:30:00Z",
-  "payload": {
-    "invoice_id": 12345,
-    "status": "paid",
-    "amount": "20.00",
-    "asset": "USDT",
-    "paid_amount": "20.00",
-    "payload": "user:usr_01HQ...|tier:pro"
-  }
+К каждой доставке прикладывается заголовок `X-AgentFlow-Signature` — HMAC-SHA256 от тела запроса с вашим секретом подписки. Отклоняйте запросы с неверной подписью.
+
+```typescript
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+function verify(rawBody: string, signature: string, secret: string) {
+  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
+  const a = Buffer.from(expected, "hex");
+  const b = Buffer.from(signature, "hex");
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 ```
 
-Поле `payload` ставит сам `agentflow-api` при создании инвойса; в нём закодированы цели user/subscription/topup. Хендлер декодирует, списывает соответствующее pending-намерение и зачисляет FLOW.
+## Повторы
 
-**Ответ**: `200 OK` с пустым телом. При ошибке — `400` с причиной; провайдер ретраит.
-
-## POST /payments/platega/webhook
-
-Принимает события платежей Platega.
-
-**Auth**: HMAC-заголовок `X-Platega-Signature`, проверяется по секрету мерчанта.
-
-```http
-POST /payments/platega/webhook
-X-Platega-Signature: <hmac>
-Content-Type: application/json
-
-{
-  "merchant_order_id": "intent_01HQ...",
-  "platega_order_id": "PLG-...",
-  "status": "paid",
-  "amount": 20.00,
-  "currency": "USD",
-  "method": "card"
-}
-```
-
-`merchant_order_id` соответствует строке в `payment_intents`, созданной через `/subscriptions/checkout` или поток top-up.
-
-## POST /webhooks/platega
-
-Legacy-алиас для `/payments/platega/webhook`. Оба маршрута уведены на один хендлер.
-
-## Депозиты USDT BEP20
-
-Депозиты USDT BEP20 не используют вебхук. Сервис `bsc-poller` опрашивает настроенные адреса депозитов и записывает кредит, когда видит подтверждённый перевод. См. `agentflow-api/src/services/bsc-poller.ts`.
+Неудачные доставки (ответ не 2xx, ошибка сети) повторяются с экспоненциальной задержкой: 30 с, 5 мин, 30 мин, 2 ч, 6 ч. После пяти неудач подписка ставится в `paused` — Cabinet показывает баннер, события можно проиграть заново.
 
 ## Идемпотентность
 
-Все хендлеры вебхуков идемпотентны по паре `(provider, externalId)`. Дубли принимаются с `200 OK`, но не порождают второго зачисления.
+Каждая доставка несёт UUID `X-AgentFlow-Delivery`. Делайте обработчик идемпотентным по этому ID — дубли принимаются с `200 OK`, но не должны вызывать второй побочный эффект на вашей стороне.
 
-## Внутренние эндпоинты
+## Внутренние ручки
 
-API также экспортирует маршруты `/internal/*` для соседних сервисов (agentflow-bot, agentflow-runtime, agentflow-agents). Auth — через заголовок `X-Internal-Token` и shared-secret. Эти маршруты **не** для публичных интеграторов.
+API экспонирует маршруты `/internal/*` для соседних сервисов (agentflow-bot, agentflow-runtime, agentflow-agents). Авторизация — через заголовок `X-Internal-Token` и общий секрет. Эти маршруты **не** для публичных интеграторов.
 
 | Маршрут | Используется |
 |---|---|
@@ -84,8 +60,6 @@ API также экспортирует маршруты `/internal/*` для с
 | `POST /internal/marketplace-notifications` | agentflow-agents |
 | `POST /internal/leads` | agentflow-bot |
 
-При self-host, если добавляете соседний сервис, выпустите новый internal-токен через `services/env.ts`.
-
 <Warning>
-  Никогда не выставляйте внутренние эндпоинты в открытый интернет. Они обходят авторизацию пользователя. Используйте приватную сеть или service mesh между компонентами AgentFlow.
+  Не выставляйте внутренние ручки в открытый интернет. Они обходят проверку прав пользователя — должны жить в приватной сети или service mesh.
 </Warning>

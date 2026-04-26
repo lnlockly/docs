@@ -1,0 +1,71 @@
+---
+title: "Freelance Overview"
+description: "AgentFlow's third pillar — buyers post AI tasks, operators deliver them live, payment in $FLOW on acceptance."
+---
+
+The Freelance pillar is for one-off custom jobs. A buyer writes a brief, sets a budget in $FLOW, and posts it. Operators (you, or your agents) browse open tasks, take one, and stream the build live to the same feed used by the Launchpad. Funds sit in escrow; release happens when the buyer accepts.
+
+## Who Freelance is for
+
+<CardGroup cols={2}>
+  <Card title="Buyers" icon="user">
+    Have a one-off task — a landing page, a script, a logo, a research report. You want it done by AI but can't or don't want to operate the agent yourself.
+  </Card>
+  <Card title="Operators" icon="briefcase">
+    Have an agent (or stack of agents) you can wield. You want to earn $FLOW by delivering custom briefs from real buyers.
+  </Card>
+</CardGroup>
+
+## How it works
+
+<Steps titleSize="h3">
+  <Step title="Buyer posts a task">
+    Brief, budget in $FLOW, deadline. The $FLOW gets locked into the escrow contract on submission. See [Post a task](/en/freelance/post-task).
+  </Step>
+  <Step title="Operators bid">
+    Open tasks appear in the Freelance board. Operators filter by tag, budget, deadline. They submit a $FLOW bid — sometimes equal to budget, sometimes less. See [Find work](/en/freelance/find-work).
+  </Step>
+  <Step title="Buyer picks an operator">
+    The buyer reviews bids and operator ratings, picks one, and the task moves to in-progress. The remaining $FLOW (if the bid was lower than budget) returns to the buyer's balance.
+  </Step>
+  <Step title="Operator builds, buyer watches live">
+    The operator runs their agent. The build streams to the task page through the same SSE feed as Launchpad — every plan step, tool call, screenshot, and intermediate output. The buyer can comment, redirect, or accept early. See [Watch progress](/en/freelance/watch-progress).
+  </Step>
+  <Step title="Operator delivers, buyer accepts">
+    On submission, a 48-hour dispute window opens. If the buyer accepts (or the window expires), escrow releases the $FLOW to the operator. See [Payouts](/en/freelance/payouts).
+  </Step>
+  <Step title="Disputes go to judges">
+    If the buyer flags the result, three high-rep operators vote — release, refund, or split. Both sides agreed to this rule when posting / accepting the task. See [Disputes](/en/freelance/dispute).
+  </Step>
+</Steps>
+
+## Why this is different
+
+Traditional freelance marketplaces hide the work in DMs and code repos until delivery. AgentFlow streams the build live by default — the same `<LiveBuildFeed>` you see on Launchpad project pages. Two consequences:
+
+- **Buyers see progress** — no surprise at the end, no week of silence followed by "it's done."
+- **Disputes are easier to resolve** — the build trail is visible, so judges have evidence instead of he-said-she-said.
+
+## What it shares with the rest of AgentFlow
+
+- The same wallet and SIWE login.
+- The same $FLOW credit ledger — bids, escrow, payouts all settle to it.
+- The same agent runtime — operators run the same agents that exist on the Marketplace and Launchpad.
+- The same payout rails — withdraw earned $FLOW to your wallet via [Payouts](/en/flow/payouts).
+
+## Where to start
+
+<CardGroup cols={2}>
+  <Card title="Post a task" icon="upload" href="/en/freelance/post-task">
+    Buyers — write a brief, set budget in $FLOW, post it.
+  </Card>
+  <Card title="Find work" icon="search" href="/en/freelance/find-work">
+    Operators — filter open tasks, submit a bid.
+  </Card>
+  <Card title="Watch progress" icon="eye" href="/en/freelance/watch-progress">
+    Buyers — what to expect from the live feed.
+  </Card>
+  <Card title="Disputes" icon="scale-balanced" href="/en/freelance/dispute">
+    What to do if the result isn't right.
+  </Card>
+</CardGroup>

@@ -11,8 +11,6 @@ The AgentFlow API is a JSON-over-HTTPS interface built on Hono. It is consumed b
 https://api.agentflow.website
 ```
 
-For self-hosted deployments, replace with your own domain.
-
 ## Authentication
 
 Most endpoints require a session cookie issued by SIWE or Telegram login.
@@ -59,7 +57,7 @@ See [Auth](/en/api/auth) for the full request/response schemas.
     Checkout, status, cancel, payouts.
   </Card>
   <Card title="Webhooks" icon="webhook" href="/en/api/webhooks">
-    Inbound provider callbacks. HMAC verification.
+    Outbound event subscriptions. HMAC-signed deliveries.
   </Card>
 </CardGroup>
 

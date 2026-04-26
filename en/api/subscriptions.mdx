@@ -11,15 +11,11 @@ Initiate a subscription checkout flow. **Auth**: required.
   One of `plus`, `pro`, `max`.
 </ParamField>
 
-<ParamField body="provider" type="string" required>
-  One of `cryptobot`, `platega`, `usdt_bep20`.
-</ParamField>
-
 ```bash
 curl -X POST https://api.agentflow.website/subscriptions/checkout \
   -H "Content-Type: application/json" \
   -H "Cookie: af_session=..." \
-  -d '{ "tier": "pro", "provider": "cryptobot" }'
+  -d '{ "tier": "pro" }'
 ```
 
 **Response**
@@ -28,13 +24,14 @@ curl -X POST https://api.agentflow.website/subscriptions/checkout \
 {
   "subscriptionId": "sub_01HQ...",
   "tier": "pro",
-  "provider": "cryptobot",
-  "checkoutUrl": "https://t.me/CryptoBot?start=invoice-...",
+  "contractAddress": "0x...",
+  "amountFlow": 100,
+  "payload": "0x...",
   "expiresAt": "2026-04-25T11:30:00Z"
 }
 ```
 
-The `checkoutUrl` is provider-specific. Redirect the user there. Activation happens server-side once the provider's webhook confirms.
+Pass `contractAddress`, `amountFlow`, and `payload` to the user's wallet to build the on-chain transaction. Activation completes once the chain indexer detects the deposit. Pre-launch, `contractAddress` is `null` and the platform debits the off-chain ledger directly.
 
 ## GET /me/subscription
 
@@ -54,7 +51,7 @@ curl https://api.agentflow.website/me/subscription \
   "monthlyGrantFlow": 100,
   "currentGrantRemainingFlow": 73.4,
   "renewsAt": "2026-05-25T11:30:00Z",
-  "provider": "cryptobot"
+  "txHash": "0x..."
 }
 ```
 
@@ -62,26 +59,24 @@ curl https://api.agentflow.website/me/subscription \
 
 ## POST /me/payouts/request
 
-Withdraw FLOW. See [Payouts](/en/flow/payouts) for the full flow.
+Withdraw $FLOW. See [Payouts](/en/flow/payouts) for the full flow.
 
 <ParamField body="amountFlow" type="number" required>
-  Amount in FLOW. Must be ≤ withdrawable balance.
+  Amount in $FLOW. Must be ≤ withdrawable balance.
 </ParamField>
 
 <ParamField body="rail" type="string" required>
-  `usdt_bep20`, `cryptobot`, or `manual`.
-</ParamField>
-
-<ParamField body="address" type="string">
-  Required for `usdt_bep20`.
+  `wallet` or `manual`.
 </ParamField>
 
 ```bash
 curl -X POST https://api.agentflow.website/me/payouts/request \
   -H "Content-Type: application/json" \
   -H "Cookie: af_session=..." \
-  -d '{ "amountFlow": 100, "rail": "usdt_bep20", "address": "0x..." }'
+  -d '{ "amountFlow": 100, "rail": "wallet" }'
 ```
+
+The destination address is taken from your SIWE-verified wallet.
 
 ## GET /me/payouts
 
@@ -100,16 +95,15 @@ Single payout detail, including rail-specific tx hash if `sent` or `confirmed`.
 
 ## POST /me/payouts/:id/cancel
 
-Cancel a `pending` payout and re-credit the FLOW.
+Cancel a `pending` payout and re-credit the $FLOW.
 
 ## Errors
 
 | Code | When |
 |---|---|
 | `tier_unknown` | Bad tier value |
-| `provider_unsupported` | Provider not enabled in this deployment |
 | `subscription_active` | New checkout while one is already active |
 | `withdraw_too_low` | Below the rail's minimum |
 | `withdraw_too_high` | Above withdrawable balance |
-| `address_required` | Missing address for on-chain rail |
+| `wallet_not_connected` | Wallet rail without a SIWE-linked address |
 | `payout_immutable` | Cancel attempted on `sent`/`confirmed` payout |

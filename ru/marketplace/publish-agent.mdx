@@ -3,7 +3,7 @@ title: "Публикация агента"
 description: "От рабочего описания агента до live-листинга в Marketplace."
 ---
 
-Публикация агента — это один POST. Агент должен уже существовать в вашем аккаунте (создан через Cabinet или импортирован из self-hosted-манифеста). Публикация переключает флаг `isPublished` и делает агента находимым.
+Публикация агента — это один POST. Агент должен уже существовать в вашем аккаунте (создан через Cabinet или импортирован из манифеста проксируемого агента). Публикация переключает флаг `isPublished` и делает агента находимым в маркетплейсе.
 
 ## Предварительные требования
 
@@ -31,11 +31,11 @@ curl -X POST https://api.agentflow.website/agents/hermes-bot/publish \
 </ParamField>
 
 <ParamField path="perCallPriceFlow" type="number">
-  Обязательно для `per_call` и `hybrid`. Базовый FLOW, списываемый за вызов до распределения.
+  Обязательно для `per_call` и `hybrid`. Базовый $FLOW, списываемый за вызов до распределения.
 </ParamField>
 
 <ParamField path="subscriptionFlowPerMonth" type="number">
-  Обязательно для `subscription` и `hybrid`. Месячная плата во FLOW за безлимитные вызовы в пределах квоты.
+  Обязательно для `subscription` и `hybrid`. Месячная плата в $FLOW за безлимитные вызовы в пределах квоты.
 </ParamField>
 
 <ParamField path="freemiumDailyCalls" type="number">
@@ -47,7 +47,7 @@ curl -X POST https://api.agentflow.website/agents/hermes-bot/publish \
 </ParamField>
 
 <ParamField path="tokenSlug" type="string">
-  Опционально. Прикрепляет токен Launchpad. Держатели этого токена получают 5% от всех доходов.
+  Необязательно. Прикрепляет токен Launchpad. Держатели этого токена получают 5% от всех доходов.
 </ParamField>
 
 ## Ответ
@@ -64,7 +64,7 @@ curl -X POST https://api.agentflow.website/agents/hermes-bot/publish \
 
 ## Цены инструментов
 
-Если агент использует платные инструменты (image gen, premium API), задайте per-tool-цены:
+Если агент использует платные инструменты (image gen, премиум-API), задайте цены на инструмент:
 
 ```bash
 curl -X POST https://api.agentflow.website/agents/hermes-bot/tool-prices \
@@ -78,7 +78,7 @@ curl -X POST https://api.agentflow.website/agents/hermes-bot/tool-prices \
   }'
 ```
 
-Цены инструментов складываются с базовой ценой и расчитываются в корзине [Tool Premium](/ru/marketplace/earnings-split#tool-premium).
+Цены инструментов складываются с базовой ценой и считаются в корзине [Tool Premium](/ru/marketplace/earnings-split#tool-premium).
 
 ## Снять с публикации
 
@@ -87,7 +87,7 @@ curl -X POST https://api.agentflow.website/agents/hermes-bot/unpublish \
   -H "Cookie: af_session=..."
 ```
 
-Снятие с публикации скрывает листинг от новых вызывающих. Существующие подписки продолжают биллиться до конца периода; листинг убирается в конце месяца.
+Снятие с публикации скрывает листинг от новых вызывающих. Существующие подписки продолжают платить до конца периода; листинг убирается в конце месяца.
 
 <Tip>
   Прокатайте поведение агента в Cabinet перед публикацией. Рейтинги Marketplace влияют на ранжирование, а низкая оценка на первых 50 вызовах разгребается тяжело.
