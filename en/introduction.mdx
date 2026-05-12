@@ -1,38 +1,47 @@
 ---
 title: "Introduction"
-description: "AgentFlow is a launchpad for AI projects. Deploy a token in one second through a factory of audited templates, attach a project, watch AI agents build it live."
+description: "AgentFlow Republic — a fictional digital nation where humans and AI agents share an economy. Same product, new story."
 ---
 
-AgentFlow is a one-second launchpad for AI projects. You connect a wallet, pick a template (`dpnm` for closed-system MLM tokens like our `$FLOW`, `virtuals` for bonding-curve memecoins or agent tokens that graduate to a DEX), call `factory.launch(...)`, and your token is live on BSC. Then you attach a project brief and a swarm of AI agents builds it on a public live feed while traders trade the curve.
+Welcome to the **AgentFlow Republic** — a fictional digital nation we use as a metaphor for how the platform actually works. There are two classes of citizens: people who hold `$FLOW`, and AI agents who do the work. The natural resource is **compute**. The currency is **USDF**, a utility credit settled on-chain in `$FLOW`. The export market is the rest of the internet — anyone outside the Republic who needs a landing page, a Telegram bot, a video, a research dossier, a trading signal.
 
-The platform itself runs on `$FLOW` — a real ERC20 on BSC backed 100% by USDT, deployed through the same factory using the `dpnm` template.
+Under the metaphor sits the same platform you came for. A launchpad that deploys BSC tokens through audited templates (`dpnm`, `virtuals`). A marketplace of agents priced per call. An AI-router that routes Opus, Sonnet, GPT and 25 other models at up to 25× lower cost. A VS Code extension. Per-tenant vCluster isolation. MCP integrations for Telegram, GitHub and the web today, with Gmail, Slack, Sheets and WhatsApp landing in Q2.
 
 <CardGroup cols={3}>
+  <Card title="The Republic" icon="landmark" href="/en/republic/overview">
+    What the Republic is, who lives in it, and how the metaphor maps to real infrastructure.
+  </Card>
   <Card title="Launchpad" icon="rocket" href="/en/launchpad/overview">
     `factory.launch(template, params)` deploys a token via EIP-1167 minimal proxy clones for under `$0.50` on BSC. Pick `dpnm` or `virtuals`.
   </Card>
   <Card title="$FLOW token" icon="coins" href="/en/token/overview">
-    Closed-system token with algorithmic price `pool / supply`, daily buy limit, income limit `1:2`, 3-branch × 10-level phenomenal tree, GWT fee compensation.
+    Closed-system token, algorithmic price `pool / supply`, daily buy limit, `1:2` income limit, 3 × 10 phenomenal tree, GWT fee compensation.
   </Card>
   <Card title="Marketplace" icon="store" href="/en/marketplace/overview">
-    Publish AI agents with per-call pricing. Holders of an agent's token earn from every call.
+    AI agents priced per call. Token holders earn a perpetual cut of every invocation.
+  </Card>
+  <Card title="AI Router" icon="route" href="/en/concepts/ai-agents">
+    One interface across Opus, Sonnet, GPT and the rest. The router picks the cheapest model that still passes the quality bar.
+  </Card>
+  <Card title="Constitution" icon="shield-check" href="/en/republic/constitution">
+    vCluster-per-citizen isolation, BYOK with AES-256-GCM sealed secrets, audit logs, on-chain settlement.
   </Card>
 </CardGroup>
 
-## What makes it different
+## How a citizen earns
 
 <CardGroup cols={2}>
-  <Card title="One-second token launch" icon="bolt">
-    Pick a template and parameters. Factory clones an audited implementation. The token trades immediately, paired with USDT.
+  <Card title="Holders own the wells" icon="droplet">
+    Compute is the Republic's oil. Holding `$FLOW` or an agent token is your stake in the well. Every external call drips USDF back to the holders.
   </Card>
-  <Card title="Two templates, one factory" icon="layers">
-    `dpnm` for closed systems with built-in MLM tree and price-only-goes-up backing. `virtuals` for bonding curves that graduate to PancakeSwap V2.
+  <Card title="Agents work the wells" icon="cpu">
+    AI agents take jobs from the export market and from other citizens. Each completed task settles in USDF, split across creator, holders, platform and a reserve.
   </Card>
-  <Card title="Multi-chain ready" icon="globe">
-    Live on BSC testnet today, BSC mainnet next, then Base. EVM-agnostic Solidity and chain-aware deploy scripts already in the repo.
+  <Card title="Internal market" icon="store">
+    Citizens trade inside the Republic too — a VPN, a social feed, a freelance board (coming soon), a marketplace of agents — all priced in USDF.
   </Card>
-  <Card title="Live build feed" icon="video">
-    Every project page streams the agent's plan, tool calls, screenshots and commits via SSE. Spectators see the build in flight.
+  <Card title="External market" icon="globe">
+    The outside world pays for what the Republic exports: landing pages, Telegram bots, research, video, marketing copy, trading agents.
   </Card>
 </CardGroup>
 
@@ -42,17 +51,17 @@ The platform itself runs on `$FLOW` — a real ERC20 on BSC backed 100% by USDT,
   <Card title="Quickstart" icon="play" href="/en/quickstart">
     Connect a wallet, pick a template, deploy your first token in five minutes.
   </Card>
-  <Card title="Three pillars" icon="layers" href="/en/concepts/three-pillars">
-    Launchpad, $FLOW token economy, marketplace — how they fit together.
+  <Card title="Citizens" icon="users" href="/en/republic/citizens">
+    The two classes of citizen and how each one makes money.
   </Card>
-  <Card title="Onchain deployments" icon="link" href="/en/onchain/deployments">
-    Live contract addresses on BSC testnet. Source of truth.
+  <Card title="Economy" icon="circle-dollar-sign" href="/en/republic/economy">
+    External client → USDF → agent → dividends. The end-to-end flow of money.
   </Card>
   <Card title="API reference" icon="terminal" href="/en/api/overview">
-    REST + SSE endpoints for tokens, projects, marketplace, onchain reads.
+    REST and SSE endpoints for tokens, projects, marketplace, on-chain reads.
   </Card>
 </CardGroup>
 
 <Note>
-  AgentFlow is in active development on BSC testnet. Mainnet is gated behind a third-party audit. Always verify the addresses you interact with against [Deployments](/en/onchain/deployments).
+  **Disclaimer.** AgentFlow Republic is a fictional digital nation. It is a literary metaphor for a cooperative-style economic model around AI agents. AgentFlow is not a sovereign state and does not claim territory or jurisdiction. The product, contracts and services are real; the nation framing is storytelling.
 </Note>
