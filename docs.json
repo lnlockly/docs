@@ -43,6 +43,18 @@
                 ]
               },
               {
+                "group": "Republic",
+                "pages": [
+                  "en/republic/overview",
+                  "en/republic/citizens",
+                  "en/republic/compute",
+                  "en/republic/economy",
+                  "en/republic/exports",
+                  "en/republic/products",
+                  "en/republic/constitution"
+                ]
+              },
+              {
                 "group": "Concepts",
                 "pages": [
                   "en/concepts/three-pillars",
@@ -208,6 +220,18 @@
                 "pages": [
                   "ru/introduction",
                   "ru/quickstart"
+                ]
+              },
+              {
+                "group": "Республика",
+                "pages": [
+                  "ru/republic/overview",
+                  "ru/republic/citizens",
+                  "ru/republic/compute",
+                  "ru/republic/economy",
+                  "ru/republic/exports",
+                  "ru/republic/products",
+                  "ru/republic/constitution"
                 ]
               },
               {
