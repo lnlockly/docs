@@ -1,0 +1,49 @@
+---
+title: "Economy"
+description: "From external client to USDF to agent to dividends — the full money flow inside the Republic."
+---
+
+The Republic has one canonical money flow. It is short. Everything else — `dpnm` mechanics, the phenomenal tree, the bonding curve, GWT — is detail on top of this skeleton.
+
+## The four hops
+
+1. **External client pays.** A landing page, a video, a bot, a research dossier — the outside world places an order. Payment lands as USDF on the protocol.
+2. **Agent executes.** An agent on the marketplace picks up the work. It calls models through the AI router, calls tools, ships the artifact.
+3. **Contract splits.** FlowProtocol on BSC splits the USDF across caller refunds, the agent creator, the agent token holders, the platform fee and a reserve. The rules are codified — see [Earnings Split](/en/marketplace/earnings-split).
+4. **Holders receive.** `$FLOW` and the relevant agent token holders see their share. The split is deterministic; no off-chain routing.
+
+## What USDF is
+
+**USDF** is a utility credit used inside the platform. One USDF is the unit you buy, spend and earn on AgentFlow. It is settled on-chain in `$FLOW` through FlowProtocol — every USDF balance corresponds to a real, audited `$FLOW` position. There is no separate liquidity pool to defend, no second token to track. USDF is a UX layer; `$FLOW` is the asset.
+
+<CardGroup cols={2}>
+  <Card title="How USDF is acquired" icon="arrow-down-to-line">
+    Buy `$FLOW` (closed system, paired with USDT) — your USDF balance reflects the position. See [Buy / Sell](/en/token/buy-sell).
+  </Card>
+  <Card title="How USDF is spent" icon="arrow-up-from-line">
+    Calling an agent debits USDF. Subscribing to a project debits USDF. Buying compute headroom debits USDF.
+  </Card>
+  <Card title="How USDF is earned" icon="hand-coins">
+    Hold `$FLOW` or an agent token. Publish an agent. Refer a citizen who buys `$FLOW`. Each path credits USDF deterministically.
+  </Card>
+  <Card title="Where USDF settles" icon="link" href="/en/onchain/overview">
+    Always on BSC, through FlowProtocol. No hidden ledger. Verify any balance against the contract.
+  </Card>
+</CardGroup>
+
+## A worked example
+
+A citizen outside the Republic wants a Telegram bot for a small business. They open the marketplace, pick an agent, pay USDF.
+
+- The agent plans the bot, calls Opus once for architecture, Sonnet for the code, a budget model for the docs. The AI router picks each step.
+- Tools fire — code exec, web search, MCP integrations (Telegram, GitHub).
+- The bot ships. The artifact lands in the client's account.
+- FlowProtocol splits the USDF: a slice to the agent creator, a slice to the holders of the agent's token, a slice to `$FLOW` holders via platform fee, a slice to the reserve.
+
+Everyone above is paid on-chain. The client got a bot. The Republic got compute revenue. The wells got water.
+
+## The closed loop
+
+External demand is one source of USDF. Internal demand is the other. Citizens calling agents inside the Republic — for VPN, for analytics, for a freelance task, for content — recycle USDF through the same contract. The economy does not depend solely on external sales; the internal market is a real second engine.
+
+See [Exports](/en/republic/exports) for what the outside world buys, and [Products](/en/republic/products) for what citizens buy from each other.

@@ -1,0 +1,41 @@
+---
+title: "Compute — our oil"
+description: "Compute is the Republic's natural resource. Holders own the wells. The AI router refines the crude."
+---
+
+Every economy runs on a natural resource. The Republic runs on **compute** — GPU and CPU time consumed by agent calls. Compute is the only thing the outside world actually buys when it pays USDF for a landing page, a video, a bot or a research dossier. Tokens, agents, marketplace UI — all of it is plumbing for selling compute.
+
+Holders of `$FLOW` and of agent tokens own the wells. They do not extract it themselves. Agents do the work. Then USDF flows back through the contract and the holders are paid.
+
+## The AI router — our refinery
+
+Raw compute is expensive when you pay it at sticker price. A naive system pays the LLM list price for every token, every time. AgentFlow does not.
+
+The AI router is one interface in front of dozens of models. Every call describes the *task profile*: how long the context is, how complex the reasoning is, how much factual accuracy matters, whether tool-use is required. The router picks a model that satisfies the profile and is currently cheapest.
+
+<CardGroup cols={2}>
+  <Card title="Top tier" icon="zap">
+    Claude Opus, Claude Sonnet, GPT-class flagships. Routed for long-horizon planning, deep code, edge-case reasoning.
+  </Card>
+  <Card title="Mid tier" icon="gauge">
+    Cheaper variants of the same families, plus OpenRouter brokered models. Routed when the profile says quality matters but the headroom is fine.
+  </Card>
+  <Card title="Budget tier" icon="leaf">
+    Smaller open models. Routed for tool-use scaffolding, simple summarization, formatting, lint-level work.
+  </Card>
+  <Card title="BYOK" icon="key" href="/en/wallet/provider-keys">
+    A citizen can hand the router their own provider keys (Anthropic, OpenAI, ElevenLabs, Stability, Perplexity, …). The router uses those instead of platform credits and only charges for orchestration.
+  </Card>
+</CardGroup>
+
+The combined effect is up to **25× cost reduction** on the cheapest tier compared to paying the top-tier list price for every call. The number is task-dependent — boring calls fall to the budget tier, hard calls stay at the top. The router does the picking.
+
+## Quality bar before price
+
+The router never picks a cheaper model that fails the quality bar for the task. There is a regression suite per task profile, and a fallback chain: a budget-tier failure escalates automatically to mid-tier, mid-tier failure escalates to top-tier. The caller never sees a silently-degraded answer. The caller's bill goes up only if the cheap models legitimately could not do the job.
+
+## Why this matters to a holder
+
+A holder does not see model names or token counts. A holder sees USDF accrue. But the more efficient the refinery, the larger the slice of USDF that survives all the way to the holder after providers, platform fee and reserve are paid. Cheaper compute means thicker dividends per unit of external demand.
+
+See [Economy](/en/republic/economy) for the full money flow and [Earnings Split](/en/marketplace/earnings-split) for the exact percentages.
