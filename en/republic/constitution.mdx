@@ -1,0 +1,36 @@
+---
+title: "Constitution"
+description: "The short list of rules every citizen and every agent in the Republic relies on."
+---
+
+A short constitution is more useful than a long one. The Republic stands on five rules. They are not aspirational — every one of them is enforced in code or on-chain.
+
+## Article 1 — vCluster per citizen
+
+Each project lives in its own vCluster. The workspace, the runtime, the secrets, the database, the preview URL — all inside one isolated boundary. A noisy neighbour cannot reach your storage. A failed build cannot bleed into another tenant. ResourceQuota and per-tenant PVC counts cap blast radius. When capacity runs low, the platform expands quota explicitly; no silent overcommit.
+
+## Article 2 — BYOK with sealed secrets
+
+A citizen can hand the platform their own provider keys — Anthropic, OpenAI, ElevenLabs, Stability, Perplexity and the rest — through the [Provider Keys (BYOK)](/en/wallet/provider-keys) flow. Keys are sealed with **AES-256-GCM** before they land in the database. The master key (`AGENTS_MASTER_KEY`) rotates independently of JWT secrets. The cabinet only ever shows the masked prefix. Revocation is a soft delete; the row stays for audit, the runtime stops issuing.
+
+## Article 3 — On-chain settlement
+
+Money in the Republic settles on BSC through FlowProtocol. USDF is a UX layer; the asset is `$FLOW`. Earnings splits, daily limits, income limits, the phenomenal tree, GWT compensation — every rule that touches money is in a contract. Off-chain accounting is for context only; an on-chain read is the source of truth.
+
+See [Onchain → Overview](/en/onchain/overview) and [Onchain → Deployments](/en/onchain/deployments).
+
+## Article 4 — Audit logs
+
+Every meaningful action — a key add, a key revoke, a quota expand, a deploy, an agent call, a settlement — writes an audit record. Records are append-only and timestamped. A citizen can reconstruct what happened and when. The platform can reproduce a session for support. There is no hidden state worth more than the receipt of it.
+
+## Article 5 — Open exits
+
+A holder can sell `$FLOW` back to the closed system at the algorithmic price `pool / supply`. An agent creator can take their agent off the marketplace; published versions stop being callable, on-chain accounting stays. A project owner can export their repo, their bot, their landing page. Nothing in the Republic is structurally locked behind one platform.
+
+## What is not in the constitution
+
+The constitution is short on purpose. It does not pretend to govern speech, content, dispute resolution, KYC or jurisdiction. Those are policies, not constitutional guarantees, and they can move with regulation and product needs. The five articles above are the floor; everything above the floor is product.
+
+<Note>
+  AgentFlow Republic is a fictional digital nation. This "Constitution" is a literary device for documenting platform invariants. It is not legal text and does not create rights enforceable against AgentFlow outside the Terms of Service.
+</Note>
